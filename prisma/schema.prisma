@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 👤 User Model (UPDATED RELATION)
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  orders    Order[]  // 🔥 User ke saare orders tracking array pipeline connect karne ke liye
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// 1. Main Product Model
+model Product {
+  id          String           @id @default(cuid())
+  name        String
+  description String
+  categoryId  String?
+  category    Category?        @relation(fields: [categoryId], references: [id])
+  images      ProductImage[]
+  variants    ProductVariant[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+// 2. Product Image Model
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// 3. Product Variant Model
+model ProductVariant {
+  id         String      @id @default(cuid())
+  size       String
+  price      Decimal     @db.Decimal(10, 2)
+  stock      Int         @default(0)
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+}
+
+// 4. Category Model
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  products  Product[]
+}
+
+// 5. Cart Model (Database-Backed)
+model CartItem {
+  id        String         @id @default(cuid())
+  sessionId String         // Browser session ID ya User ID
+  quantity  Int            @default(1)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  createdAt DateTime       @default(now())
+}
+
+// 6. Order Model (UPDATED FOR DYNAMIC PAYMENTS & SECURITY)
+model Order {
+  id            String      @id @default(cuid())
+  fullName      String
+  phone         String
+  address       String
+  city          String
+  notes         String?
+  totalAmount   Decimal     @db.Decimal(10, 2)
+  status        String      @default("PENDING") // PENDING, SHIPPED, DELIVERED, CANCELLED
+
+  // 🔑 NEW CHANNELS: Payment Gateways Tracking Engine
+  paymentMethod String      // "COD", "CARD", ya "WALLET"
+  paymentStatus String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  gatewayRefId  String?     // External Aggregator Redirect/Transaction Session ID Tracking
+
+  items         OrderItem[]
+  
+  // 🔥 Relational constraints to avoid 'Unknown argument userId' schema crash
+  userId        String?     
+  user          User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime    @default(now())
+}
+
+// 7. Order Item Model
+model OrderItem {
+  id        String         @id @default(cuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id])
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int
+  price     Decimal        @db.Decimal(10, 2) // Order ke waqt jo price thi
+}
+
+// 🔑 8. NEW MODEL: Safepay Widget Temporary Token Freeze Module
+model PaymentSession {
+  id        String   @id @default(uuid())
+  userId    String
+  cartData  String   @db.Text // JSON metadata layout for temporary storage
+  createdAt DateTime @default(now())
+}

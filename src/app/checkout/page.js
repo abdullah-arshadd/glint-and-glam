@@ -24,6 +24,14 @@ export default function CheckoutPage() {
   const shippingFee = 250;
   const grandTotal = cartTotal + shippingFee;
 
+  // 🚀 AUTOMATIC EMPTY CART REDIRECTION SYSTEM (Bypasses direct URL access without login)
+  React.useEffect(() => {
+    if (!loading && cartItems.length === 0) {
+      toast.error("Your cart is empty! Add some items before checking out.");
+      window.location.href = '/cart';
+    }
+  }, [cartItems, loading]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'phone') {
@@ -107,6 +115,9 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
+
+  // Prevent UI flashing while redirecting an empty cart user
+  if (cartItems.length === 0) return null;
 
   return (
     <main className="min-h-screen py-12 lg:py-20 [font-family:'Plus_Jakarta_Sans',sans-serif]" style={{ backgroundColor: '#f5f3ed' }}>

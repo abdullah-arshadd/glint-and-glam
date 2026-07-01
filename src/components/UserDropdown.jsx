@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation"; // 🚀 usePathname import kiya taakay route change par check ho
+import { useRouter, usePathname } from "next/navigation";
 import { User, LogIn, UserPlus, Settings, LogOut, Package } from "lucide-react";
 
 export default function UserDropdown() {
@@ -10,12 +10,10 @@ export default function UserDropdown() {
   const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
   const router = useRouter();
-  const pathname = usePathname(); // 🔥 Jab bhi user login/signup se home par aayega, ye path change detect karega
+  const pathname = usePathname();
 
-  // 📡 Fresh Session Check Function
   const checkSession = async () => {
     try {
-      // cache: 'no-store' aur headers strictly ensure karenge ki browser cache use na kare
       const res = await fetch("/api/auth/session", { 
         method: "GET",
         cache: "no-store",
@@ -39,15 +37,13 @@ export default function UserDropdown() {
     }
   };
 
-  // 🔄 Effect 1: Page load par aur jab bhi URL Pathname badle (Jaise login ke baad home par aana)
   useEffect(() => {
     checkSession();
   }, [pathname]); 
 
-  // 🔄 Effect 2: Jab dropdown khule aur click outside listener
   useEffect(() => {
     if (isOpen) {
-      checkSession(); // Khulte hi background mein dobara confirm karlo
+      checkSession();
     }
 
     function handleClickOutside(event) {
@@ -59,7 +55,6 @@ export default function UserDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  // 🚪 Logout Handler
   const handleLogout = async () => {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
@@ -76,7 +71,6 @@ export default function UserDropdown() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* USER ICON BUTTON */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -90,14 +84,13 @@ export default function UserDropdown() {
         )}
       </button>
 
-      {/* DROPDOWN MENU */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white border border-[#F7BFB4]/30 rounded-lg shadow-xl py-2 z-[99999] animate-in fade-in slide-in-from-top-5 duration-200">
+        <div className="absolute right-0 mt-2 w-56 bg-white border border-[#3a2e28]/10 rounded-md shadow-xl py-2 z-[99999] animate-in fade-in slide-in-from-top-5 duration-200">
           {user ? (
             <>
-              <div className="px-4 py-2.5 border-b border-gray-50 font-sans normal-case">
+              <div className="px-4 py-2.5 border-b border-gray-100 font-sans normal-case">
                 <p className="text-[10px] text-gray-400 font-light uppercase tracking-wider">Signed in as</p>
-                <p className="text-sm font-medium text-[#2D2524] truncate mt-0.5">{user.name}</p>
+                <p className="text-sm font-medium text-[#3a2e28] truncate mt-0.5">{user.name}</p>
                 <p className="text-xs text-gray-400 truncate font-light">{user.email}</p>
               </div>
 
@@ -105,28 +98,28 @@ export default function UserDropdown() {
                 <Link
                   href="/profile/edit"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#F7BFB4]/10 hover:text-[#DB93B0] transition-colors"
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#f5f3ed] hover:text-[#3a2e28] transition-colors"
                 >
-                  <Settings size={14} strokeWidth={1.8} />
+                  <Settings size={14} strokeWidth={1.6} />
                   Edit Profile
                 </Link>
                 <Link
                   href="/orders"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#F7BFB4]/10 hover:text-[#DB93B0] transition-colors"
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#f5f3ed] hover:text-[#3a2e28] transition-colors"
                 >
-                  <Package size={14} strokeWidth={1.8} />
+                  <Package size={14} strokeWidth={1.6} />
                   My Orders
                 </Link>
               </div>
 
-              <div className="border-t border-gray-50 pt-1 mt-1 font-sans normal-case">
+              <div className="border-t border-gray-100 pt-1 mt-1 font-sans normal-case">
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-500 hover:bg-red-50/50 transition-colors text-left cursor-pointer font-medium"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-500 hover:bg-red-50/60 transition-colors text-left cursor-pointer font-medium"
                 >
-                  <LogOut size={14} strokeWidth={1.8} />
+                  <LogOut size={14} strokeWidth={1.6} />
                   Logout
                 </button>
               </div>
@@ -136,17 +129,17 @@ export default function UserDropdown() {
               <Link
                 href="/login"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#F7BFB4]/10 hover:text-[#DB93B0] transition-colors"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#f5f3ed] hover:text-[#3a2e28] transition-colors"
               >
-                <LogIn size={14} strokeWidth={1.8} />
+                <LogIn size={14} strokeWidth={1.6} />
                 Login
               </Link>
               <Link
                 href="/signup"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#F7BFB4]/10 hover:text-[#DB93B0] transition-colors"
+                className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#f5f3ed] hover:text-[#3a2e28] transition-colors"
               >
-                <UserPlus size={14} strokeWidth={1.8} />
+                <UserPlus size={14} strokeWidth={1.6} />
                 Create Account
               </Link>
             </div>

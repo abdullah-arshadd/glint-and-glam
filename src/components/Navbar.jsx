@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import UserDropdown from "./UserDropdown";
+import SearchBar from "./SearchBar";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ShoppingBag, Search, Menu, X } from 'lucide-react';
@@ -45,11 +46,22 @@ export default function Navbar() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20 relative">
 
-                    {/* Left: Navigation Links */}
+                    {/* Left: Navigation Links & Mobile Toggle */}
                     <div className="flex items-center">
                         <div className="flex md:hidden z-50">
-                            <button onClick={() => setIsOpen(!isOpen)} className="nav-icon-item focus:outline-none cursor-pointer p-1">
-                                {isOpen ? <X size={20} /> : <Menu size={20} />}
+                            {/* 🌟 HAMBURGER ICON TRANSITION: Rotates and morphs fluidly */}
+                            <button 
+                                onClick={() => setIsOpen(!isOpen)} 
+                                className="nav-icon-item focus:outline-none cursor-pointer p-1 relative w-6 h-6 flex items-center justify-center"
+                            >
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    <span className={`absolute transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isOpen ? 'transform rotate-90 opacity-0 scale-75' : 'transform rotate-0 opacity-100 scale-100'}`}>
+                                        <Menu size={20} />
+                                    </span>
+                                    <span className={`absolute transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isOpen ? 'transform rotate-0 opacity-100 scale-100' : 'transform rotate--90 opacity-0 scale-75'}`}>
+                                        <X size={20} />
+                                    </span>
+                                </div>
                             </button>
                         </div>
 
@@ -73,9 +85,7 @@ export default function Navbar() {
 
                     {/* Right: Icons */}
                     <div className="flex items-center space-x-3 sm:space-x-6 z-50">
-                        <button onClick={() => setIsSearchOpen(true)} className="nav-icon-item cursor-pointer p-1.5">
-                            <Search size={18} strokeWidth={1.5} />
-                        </button>
+                        <SearchBar />
 
                         {/* 🔑 FIXED: User Dropdown wrapped in direct control layout to force turn off pink */}
                         <div className="user-dropdown-wrapper inline-flex items-center">
@@ -98,16 +108,21 @@ export default function Navbar() {
                 </div>
             </div>
 
-            {/* Mobile Menu */}
-            {isOpen && (
-                <div className="md:hidden border-none animate-in fade-in slide-in-from-top-5 duration-200" style={{ backgroundColor: '#f0e8d6' }}>
-                    <div className="px-4 pt-2 pb-6 space-y-4 text-center flex flex-col">
-                        <Link href="/shop" onClick={() => setIsOpen(false)} className="nav-link-item py-2">Shop All</Link>
-                        <Link href="/shop" onClick={() => setIsOpen(false)} className="nav-link-item py-2">Rings</Link>
-                        <Link href="/shop" onClick={() => setIsOpen(false)} className="nav-link-item py-2">Necklaces</Link>
-                    </div>
+            {/* 🌟 SEXY MOBILE DRAWER: Smooth slide & fade transition for enter and exit animations */}
+            <div 
+                className={`md:hidden border-none absolute left-0 right-0 top-20 transform origin-top transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                    isOpen 
+                        ? "opacity-100 scale-y-100 translate-y-0 visible" 
+                        : "opacity-0 scale-y-95 -translate-y-2 invisible pointer-events-none"
+                }`} 
+                style={{ backgroundColor: '#f0e8d6' }}
+            >
+                <div className="px-4 pt-2 pb-8 space-y-4 text-center flex flex-col shadow-[0_15px_30px_rgba(58,46,40,0.05)]">
+                    <Link href="/shop" onClick={() => setIsOpen(false)} className="nav-link-item py-2.5 text-xs tracking-widest border-b border-[#3a2e28]/5 last:border-none transition-all duration-300">Shop All</Link>
+                    <Link href="/shop" onClick={() => setIsOpen(false)} className="nav-link-item py-2.5 text-xs tracking-widest border-b border-[#3a2e28]/5 last:border-none transition-all duration-300">Rings</Link>
+                    <Link href="/shop" onClick={() => setIsOpen(false)} className="nav-link-item py-2.5 text-xs tracking-widest border-b border-[#3a2e28]/5 last:border-none transition-all duration-300">Necklaces</Link>
                 </div>
-            )}
+            </div>
 
             {/* Search Overlay */}
             {isSearchOpen && (

@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Package, Plus, Edit2, Trash2, X, Trash } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, X, Trash, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminProducts() {
@@ -18,6 +18,7 @@ export default function AdminProducts() {
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState(''); 
   const [images, setImages] = useState([{ url: '' }]);
+  const [isFeatured, setIsFeatured] = useState(false); // 🔥 Added state control for featured feature
 
   // 🔑 NESTED LEVEL STATE TRACKING
   const [selectedMainId, setSelectedMainId] = useState('');
@@ -57,7 +58,6 @@ export default function AdminProducts() {
       console.error("Dashboard architecture sync error:", error);
       toast.error("Network synchronization pipeline error.");
     } finally {
-      // 🔑 FIXED: Changed loading(false) to setLoading(false)
       setLoading(false);
     }
   };
@@ -88,6 +88,7 @@ export default function AdminProducts() {
     setSelectedChildId('');
     setImages([{ url: '' }]);
     setVariants([createEmptyVariant()]);
+    setIsFeatured(false); // Fresh form reset
     setIsModalOpen(true);
   };
 
@@ -96,6 +97,7 @@ export default function AdminProducts() {
     setName(product.name);
     setDescription(product.description || '');
     setImages(product.images && product.images.length > 0 ? product.images.map(img => ({ url: img.url })) : [{ url: '' }]);
+    setIsFeatured(product.isFeatured || false); // Bind dynamic payload values
     
     // Reverse trace category dynamic hierarchy paths
     if (product.categoryId && categories.length > 0) {
@@ -148,6 +150,7 @@ export default function AdminProducts() {
     setSelectedChildId('');
     setImages([{ url: '' }]);
     setVariants([createEmptyVariant()]);
+    setIsFeatured(false);
   };
 
   // Dynamic state handler updates
@@ -211,7 +214,8 @@ export default function AdminProducts() {
       description,
       categoryId: categoryId || null, 
       images: filteredImages,
-      variants: filteredVariants
+      variants: filteredVariants,
+      isFeatured: Boolean(isFeatured) // 🔥 Dynamic body verification sync
     };
 
     try {
@@ -336,12 +340,25 @@ export default function AdminProducts() {
                       <Package size={24} strokeWidth={1} />
                     </div>
                   )}
+                  {/* Badge system on product list cards to see what is trending immediately */}
+                  {prod.isFeatured && (
+                    <div className="absolute top-1 left-1 bg-[#2D2524] text-white p-1 rounded-none shadow-sm flex items-center justify-center">
+                      <Star size={8} fill="currentColor" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex-1 space-y-2 min-w-0 pr-20">
-                  <h4 className="text-sm font-semibold text-[#2D2524] truncate group-hover:text-[#DB93B0] transition-colors duration-200">
-                    {prod.name}
-                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-sm font-semibold text-[#2D2524] truncate group-hover:text-[#DB93B0] transition-colors duration-200">
+                      {prod.name}
+                    </h4>
+                    {prod.isFeatured && (
+                      <span className="text-[8px] bg-[#DB93B0]/10 text-[#DB93B0] px-1.5 py-0.5 tracking-wider uppercase font-semibold">
+                        Best Seller
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-400 line-clamp-2 h-8 leading-relaxed">{prod.description || 'No description added'}</p>
                   
                   <div className="pt-1 flex flex-wrap gap-2 text-[10px] font-medium tracking-wide">
@@ -473,6 +490,25 @@ export default function AdminProducts() {
                     className="w-full border border-gray-200 p-3 text-xs outline-none focus:border-[#DB93B0] resize-none bg-gray-50/20 leading-relaxed"
                     required
                   />
+                </div>
+
+                {/* 🔥 PREMIUM BEST SELLER CHECKBOX SELECTION BLOCK */}
+                <div className="flex items-center gap-3 border p-4 bg-[#FAF9F6] border-gray-200/60 transition-all duration-200">
+                  <input 
+                    type="checkbox" 
+                    id="isFeatured" 
+                    checked={isFeatured}
+                    onChange={(e) => setIsFeatured(e.target.checked)}
+                    className="w-4 h-4 accent-[#2D2524] cursor-pointer"
+                  />
+                  <label htmlFor="isFeatured" className="flex flex-col cursor-pointer select-none">
+                    <span className="font-semibold uppercase tracking-wider text-[10px] text-[#2D2524]">
+                      Feature on Landing Page Grid
+                    </span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">
+                      Marking this sets the configuration inside the premium slider loop under "Our Best Sellers".
+                    </span>
+                  </label>
                 </div>
               </div>
 

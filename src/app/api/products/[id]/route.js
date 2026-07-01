@@ -1,22 +1,23 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// 🔄 PATCH: Product update handler (FIXED MECHANISM)
-// 🔄 PATCH: Product update handler (UPGRADED TO UPSERT MATCHING FOR LIVE CONSTRAINTS)
+// 🔄 PATCH: Product update handler (UPGRADED WITH ISFEATURED SUPPORT)
 export async function PATCH(req, { params }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const { name, description, categoryId, images, variants } = body;
+    // 🔑 Destructured isFeatured field from the incoming payload body
+    const { name, description, categoryId, images, variants, isFeatured } = body;
 
     const updatedProduct = await prisma.$transaction(async (tx) => {
-      // 1. Core Product Data ko update karo
+      // 1. Core Product Data ko update karo (Including Featured Boolean Toggle)
       const product = await tx.product.update({
         where: { id: String(id) },
         data: {
           name,
           description,
           categoryId: categoryId ? String(categoryId) : null,
+          isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : undefined, // 🔥 dynamic filter checkbox value mapper
         }
       });
 

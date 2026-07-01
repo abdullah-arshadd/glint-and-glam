@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
-// 🚀 Next.js App Router ke tahat redirection ke liye useRouter import kiya
-import { useRouter } from "next/navigation"; 
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState({ type: "", text: "" });
-  
-  // Router ko initialize kiya
-  const router = useRouter(); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +15,7 @@ export default function LoginPage() {
     setStatusMessage({ type: "", text: "" });
 
     try {
-      // 📡 Backend Login API ko fetch ke zariye hit kiya
+      // 📡 Backend Login API
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,17 +30,12 @@ export default function LoginPage() {
           text: `🎉 ${data.message}`,
         });
 
-        // 🔒 SECURITY UPDATE: localStorage yahan se mukammal khatam!
-        // Backend khud hi secure httpOnly cookie client par drop karega.
-
-        // ⏱️ 1.5 seconds ke delay ke baad homepage par redirect aur refresh
+        // ⏱️ 1.5 seconds ke delay ke baad homepage par HARD REDIRECT
         setTimeout(() => {
-          router.push("/");
-          router.refresh(); // Taakay navbar aur layouts naya cookie session instantly catch karein
+          window.location.href = "/"; // Forces a hard reload so the navbar catches the cookie instantly
         }, 1500);
 
       } else {
-        // Validation fails ya ghalat credentials par error handle
         setStatusMessage({
           type: "error",
           text: `❌ ${data.message}`,
@@ -62,14 +52,11 @@ export default function LoginPage() {
   };
 
   return (
-    // 🔑 FIXED: Whole page wrapped inside your premium brand background #f7f2e6
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 [font-family:'Plus_Jakarta_Sans',sans-serif]" style={{ backgroundColor: '#f5f3ed' }}>
       <div className="sm:mx-auto w-full max-w-md">
-        {/* Back to Home Link */}
         <Link href="/" className="flex items-center gap-2 text-xs transition-colors mb-6 justify-center sm:justify-start sm:px-0 px-4 opacity-70 hover:opacity-100" style={{ color: '#3a2e28' }}>
           <ArrowLeft size={14} /> Back to store
         </Link>
-        {/* 🔑 FIXED: Main heading synced with Cormorant Garamond & proper brand color */}
         <h2 className="text-center text-3xl font-light tracking-wide [font-family:'Cormorant_Garamond',serif]" style={{ color: '#3a2e28' }}>
           Welcome Back
         </h2>
@@ -81,7 +68,6 @@ export default function LoginPage() {
       <div className="mt-8 sm:mx-auto w-full max-w-md px-4 sm:px-0">
         <div className="bg-white/60 backdrop-blur-md py-8 px-6 border rounded-xl shadow-xs sm:px-10" style={{ borderColor: 'rgba(58, 46, 40, 0.1)' }}>
           
-          {/* UI Alerts Feedback Banner */}
           {statusMessage.text && (
             <div className={`mb-5 p-3 text-xs rounded-md font-light text-center ${
               statusMessage.type === "success" 
@@ -138,7 +124,6 @@ export default function LoginPage() {
             </div>
 
             <div>
-              {/* 🔑 FIXED: HERE IS YOUR SIGN IN BUTTON - Restyled elegantly to stand out cleanly */}
               <button
                 type="submit"
                 disabled={loading}

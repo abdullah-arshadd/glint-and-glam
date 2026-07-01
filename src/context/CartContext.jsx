@@ -7,28 +7,21 @@ const CartContext = createContext();
 export function CartProvider({ children }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  const [sessionId, setSessionId] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Browser ke liye unique Session ID generate ya fetch karna
+  // 1. Initial Load: Page open hote hi data fetch karo (Backend cookie khud manage karega)
   useEffect(() => {
-    let sid = localStorage.getItem('twinks_session_id');
-    if (!sid) {
-      sid = crypto.randomUUID(); // Ek unique long string banata hai
-      localStorage.setItem('twinks_session_id', sid);
-    }
-    setSessionId(sid);
-    fetchCart(sid);
+    fetchCart();
   }, []);
 
   // 2. Database (API) se Cart Items lekar aana
-  const fetchCart = async (sid) => {
-    if (!sid) return;
+  const fetchCart = async () => {
     try {
-      const res = await fetch(`/api/cart?sessionId=${sid}`);
+      // 🚀 FIXED: URL params se sessionId hata diya, ab server direct cookie se parh lega
+      const res = await fetch('/api/cart');
       if (res.ok) {
-        const data = await res.ok ? await res.json() : [];
-        setCartItems(data);
+        const data = await res.json();
+        setCartItems(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Cart fetch karne mein error:", error);
@@ -41,13 +34,11 @@ export function CartProvider({ children }) {
 
   // 3. Database mein product variant add karna
   const addToCart = async (variantId, stockAvailable) => {
-    // Frontend Level par check karo ke variant database se aa raha hai ya nahi
     if (!variantId) {
       toast.error("Invalid product variant!");
       return;
     }
 
-    // Pehle hi check karlo variant pehle se cart mein kitna hai
     const existing = cartItems.find(item => item.variantId === variantId);
     if (existing && existing.quantity >= stockAvailable) {
       toast.error("Sorry, no more stock available for this item!");
@@ -58,11 +49,11 @@ export function CartProvider({ children }) {
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, variantId, quantity: 1 })
+        body: JSON.stringify({ variantId, quantity: 1 }) // 🚀 FIXED: sessionId removed from payload
       });
 
       if (res.ok) {
-        await fetchCart(sessionId); // UI Refresh karo fresh DB entry ke sath
+        await fetchCart(); // UI Refresh
         toast.success("Added to bag successfully!");
       } else {
         toast.error("Could not add to bag");
@@ -72,7 +63,7 @@ export function CartProvider({ children }) {
     }
   };
 
-  // 4. Cart se specific item remove karna (Database delete)
+  // 4. Cart se specific item remove karna
   const removeFromCart = async (cartItemId) => {
     try {
       const res = await fetch('/api/cart', {
@@ -90,45 +81,43 @@ export function CartProvider({ children }) {
     }
   };
 
-  // 5. Quantity kam ya zyada karna (Plus/Minus buttons)
+  // 5. Quantity kam ya zyada karna (Plus/Minus)
   const updateQuantity = async (cartItemId, amount) => {
     const item = cartItems.find((i) => i.id === cartItemId);
     if (!item) return;
 
     const newQty = item.quantity + amount;
-    if (newQty < 1) return; // 1 se neeche nahi jane dena
+    if (newQty < 1) return;
 
-    // Variant ka stock check karo
     if (amount > 0 && newQty > item.variant.stock) {
       toast.error("Cannot exceed available stock!");
       return;
     }
 
     try {
-      // Is logic ke liye hum POST request ko hi use karenge, bas quantity overwrite bhejenge
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          sessionId, 
           variantId: item.variantId, 
-          quantity: amount, // Jo amount change karni hai (+1 ya -1)
+          quantity: amount, 
           isUpdate: true 
-        })
+        }) // 🚀 FIXED: sessionId removed
       });
 
       if (res.ok) {
-        await fetchCart(sessionId);
+        await fetchCart();
       }
     } catch (error) {
       console.error("Quantity update nahi ho saki:", error);
     }
   };
 
-  // 6. Checkout ke baad puri cart khali karne ke liye function
+  // 6. Checkout ke baad puri cart khali karna
   const clearCart = async () => {
     try {
-      const res = await fetch(`/api/cart?sessionId=${sessionId}`, { method: 'DELETE' });
+      // 🚀 FIXED: Query param ki zaroorat nahi
+      const res = await fetch('/api/cart', { method: 'DELETE' });
       if (res.ok) {
         setCartItems([]);
       }
@@ -137,7 +126,6 @@ export function CartProvider({ children }) {
     }
   };
 
-  // Real-time server price Calculation
   const cartTotal = cartItems.reduce(
     (sum, item) => sum + (Number(item.variant?.price || 0) * item.quantity), 
     0

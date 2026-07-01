@@ -1,16 +1,39 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+
+// 🔒 PRIVATE HELPER: Secure Cookie se Session ID nikalna ya naya generate karna
+async function getOrCreateCartSession() {
+  const cookieStore = await cookies();
+  let sessionId = cookieStore.get('twinks_cart_session')?.value;
+  let isNew = false;
+
+  if (!sessionId) {
+    sessionId = crypto.randomUUID(); // Automatic unique long string generate hogi
+    isNew = true;
+  }
+
+  return { sessionId, isNew };
+}
+
+// ⏳ UTILITY: Cookies ko response me inject karne ka generator helper
+function setSessionCookie(response, sessionId) {
+  response.cookies.set({
+    name: 'twinks_cart_session',
+    value: sessionId,
+    httpOnly: true, // Anti-XSS Protection (JavaScript access block)
+    secure: process.env.NODE_ENV === 'production', // Local par http, live build par HTTPS compulsory
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30, // 30 Days expiration cycle
+    path: '/' // Global scope app context access
+  });
+}
 
 // 1. GET: Session ID ke mutabiq database se cart items lana
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const sessionId = searchParams.get('sessionId');
-  
-  if (!sessionId) {
-    return NextResponse.json([], { status: 400 });
-  }
-
   try {
+    const { sessionId, isNew } = await getOrCreateCartSession();
+
     const cartItems = await prisma.cartItem.findMany({
       where: { sessionId },
       include: {
@@ -28,7 +51,13 @@ export async function GET(req) {
         createdAt: 'asc' // Taake cart items ki tarteeb kharab na ho refresh par
       }
     });
-    return NextResponse.json(cartItems);
+
+    const response = NextResponse.json(cartItems);
+    
+    // Agar user first time aaya hai, to uski token cookie set kardo
+    if (isNew) setSessionCookie(response, sessionId);
+    
+    return response;
   } catch (error) {
     console.error("GET Error:", error);
     return NextResponse.json({ error: "Failed to fetch cart" }, { status: 500 });
@@ -38,10 +67,11 @@ export async function GET(req) {
 // 2. POST: Item add karna ya quantity update karna
 export async function POST(req) {
   try {
-    const { sessionId, variantId, quantity, isUpdate } = await req.json();
+    const { sessionId, isNew } = await getOrCreateCartSession();
+    const { variantId, quantity, isUpdate } = await req.json();
 
-    if (!sessionId || !variantId) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!variantId) {
+      return NextResponse.json({ error: "Missing variantId" }, { status: 400 });
     }
 
     // Check karo agar item pehle se cart mein hai
@@ -49,6 +79,8 @@ export async function POST(req) {
       where: { sessionId, variantId },
       include: { variant: true }
     });
+
+    let resultItem;
 
     if (existingItem) {
       let newQuantity;
@@ -66,29 +98,31 @@ export async function POST(req) {
         return NextResponse.json({ error: "Quantity cannot be less than 1" }, { status: 400 });
       }
 
-      // Stock Limit Check karein backend level par bhi safety ke liye
+      // Stock Limit Check
       if (newQuantity > existingItem.variant.stock) {
         return NextResponse.json({ error: "Out of stock limit" }, { status: 400 });
       }
 
-      const updatedItem = await prisma.cartItem.update({
+      resultItem = await prisma.cartItem.update({
         where: { id: existingItem.id },
         data: { quantity: newQuantity }
       });
-
-      return NextResponse.json(updatedItem);
+    } else {
+      // Agar item bilkul naya hai cart mein, toh naya entry create karo
+      resultItem = await prisma.cartItem.create({
+        data: {
+          sessionId,
+          variantId,
+          quantity: quantity || 1
+        }
+      });
     }
 
-    // Agar item bilkul naya hai cart mein, toh naya entry create karo
-    const newItem = await prisma.cartItem.create({
-      data: {
-        sessionId,
-        variantId,
-        quantity: quantity || 1
-      }
-    });
-
-    return NextResponse.json(newItem);
+    const response = NextResponse.json(resultItem);
+    
+    if (isNew) setSessionCookie(response, sessionId);
+    
+    return response;
   } catch (error) {
     console.error("POST Error:", error);
     return NextResponse.json({ error: "Failed to handle cart operation" }, { status: 500 });
@@ -98,29 +132,31 @@ export async function POST(req) {
 // 3. DELETE: Pori cart saaf karna ya specific item delete karna
 export async function DELETE(req) {
   try {
-    // URL se sessionId check karo (Pori cart khali karne ke liye)
-    const { searchParams } = new URL(req.url);
-    const sessionId = searchParams.get('sessionId');
-
-    if (sessionId) {
-      await prisma.cartItem.deleteMany({
-        where: { sessionId }
-      });
-      return NextResponse.json({ message: "Cart cleared" });
-    }
-
-    // Body se cartItemId check karo (Single row cross/trash button se delete karne ke liye)
+    const { sessionId, isNew } = await getOrCreateCartSession();
+    
+    // Request check karne ke liye safe dynamic json parsing block
     const body = await req.json().catch(() => ({}));
     const { cartItemId } = body;
 
+    let response;
+
     if (cartItemId) {
+      // Case A: Row cross/trash button click se single item delete karna
       await prisma.cartItem.delete({
         where: { id: cartItemId }
       });
-      return NextResponse.json({ message: "Item removed" });
+      response = NextResponse.json({ message: "Item removed" });
+    } else {
+      // Case B: No parameters in body matlab pure checkout cart clear trigger (Clear Cart)
+      await prisma.cartItem.deleteMany({
+        where: { sessionId }
+      });
+      response = NextResponse.json({ message: "Cart cleared" });
     }
 
-    return NextResponse.json({ error: "Invalid Request" }, { status: 400 });
+    if (isNew) setSessionCookie(response, sessionId);
+    
+    return response;
   } catch (error) {
     console.error("DELETE Error:", error);
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });

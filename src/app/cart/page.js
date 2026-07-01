@@ -7,40 +7,41 @@ import Link from 'next/link';
 export default function CartPage() {
     const { cartItems, updateQuantity, removeFromCart, cartTotal } = useCart();
     
-    // 🔑 FIXED: Dynamic state-based hover control for the "Continue Shopping" button to ensure it never vanishes
+    // Dynamic state-based hover control for the "Continue Shopping" button
     const [isHovered, setIsHovered] = useState(false);
 
     if (cartItems.length === 0) {
         return (
-            // 🔑 FIXED: Wrapped in your brand's clean light tone background
-            <main className="min-w-screen min-h-screen flex flex-col items-center justify-center py-20 px-4 [font-family:'Plus_Jakarta_Sans',sans-serif]" style={{ backgroundColor: '#f7f2e6' }}>
-                <ShoppingBag size={48} className="mb-4 opacity-40" style={{ color: '#3a2e28' }} />
-                <h2 className="text-xl font-light tracking-wide [font-family:'Cormorant_Garamond',serif]" style={{ color: '#3a2e28' }}>
-                    Your bag is empty
-                </h2>
-                
-                {/* 🔑 FIXED: Guaranteed non-vanishing interactive Continue Shopping button */}
-                <Link
-                    href="/shop"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    className="mt-6 px-8 py-3.5 uppercase text-xs tracking-widest transition-all duration-300 font-semibold shadow-xs"
-                    style={{
-                        backgroundColor: isHovered ? '#BD977A' : '#3a2e28',
-                        color: '#ffffff',
-                        display: 'inline-block',
-                        textAlign: 'center'
-                    }}
-                >
-                    Continue Shopping
-                </Link>
-            </main>
+            // 🚀 FIXED: Height ko strict calc kiya hai aur overflow-hidden lagaya hai taakay vertical scroll har haal me block ho jaye
+            <div className="w-full h-[calc(100vh-80px)] flex flex-col overflow-hidden" style={{ backgroundColor: '#f7f2e6' }}>
+                <main className="w-full flex-1 flex flex-col items-center justify-center py-10 px-4 [font-family:'Plus_Jakarta_Sans',sans-serif]">
+                    <ShoppingBag size={48} className="mb-4 opacity-40" style={{ color: '#3a2e28' }} />
+                    <h2 className="text-xl font-light tracking-wide [font-family:'Cormorant_Garamond',serif]" style={{ color: '#3a2e28' }}>
+                        Your bag is empty
+                    </h2>
+                    
+                    <Link
+                        href="/shop"
+                        onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)}
+                        className="mt-6 px-8 py-3.5 uppercase text-xs tracking-widest transition-all duration-300 font-semibold shadow-xs"
+                        style={{
+                            backgroundColor: isHovered ? '#BD977A' : '#3a2e28',
+                            color: '#ffffff',
+                            display: 'inline-block',
+                            textAlign: 'center'
+                        }}
+                    >
+                        Continue Shopping
+                    </Link>
+                </main>
+            </div>
         );
     }
 
     return (
-        // 🔑 FIXED: Smooth brand theme layout wrapper
-        <main className="min-h-screen py-16 px-4 [font-family:'Plus_Jakarta_Sans',sans-serif]" style={{ backgroundColor: '#f5f3ed' }}>
+        // 🚀 FIXED: Normal scroll format jab items zyada hon
+        <main className="w-full min-h-screen py-16 px-4 [font-family:'Plus_Jakarta_Sans',sans-serif]" style={{ backgroundColor: '#f5f3ed' }}>
             <div className="max-w-4xl mx-auto">
                 
                 <h1 className="text-3xl md:text-4xl font-light tracking-wide mb-10 [font-family:'Cormorant_Garamond',serif]" style={{ color: '#3a2e28' }}>
@@ -105,7 +106,6 @@ export default function CartPage() {
                         <span className="text-xl font-semibold" style={{ color: '#3a2e28' }}>Rs. {cartTotal.toLocaleString()}</span>
                     </div>
                     
-                    {/* 🔑 FIXED: Re-styled to match your solid premium theme brand asset buttons */}
                     <Link
                         href="/checkout"
                         className="block w-full text-white text-center py-4 uppercase tracking-widest text-xs font-semibold rounded-md transition-opacity duration-300 hover:opacity-90 shadow-xs"

@@ -103,7 +103,7 @@ export default function UserDropdown() {
 
               <div className="py-1 font-sans normal-case">
                 <Link
-                  href="/profile"
+                  href="/profile/edit"
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-2.5 px-4 py-2 text-xs text-gray-600 hover:bg-[#F7BFB4]/10 hover:text-[#DB93B0] transition-colors"
                 >

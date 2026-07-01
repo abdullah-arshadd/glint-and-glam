@@ -1,73 +1,118 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // Humari banayi hui prisma.js file
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
   try {
-    // 1. Frontend se aane wale data ko parse karo
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, phone, otp } = body;
 
-    // 2. Validation check karo ke sab kuch aaya hai ya nahi
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { message: 'Missing required fields (name, email, password)' },
-        { status: 400 }
-      );
+    // Phase 1: Agar user sirf OTP request kar raha hai (Signup Form Submit kiya)
+    if (!otp) {
+      if (!name || !email || !password || !phone) {
+        return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+      }
+
+      // Strict Uniqueness Check (Database level verification se pehle code level block)
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: email.toLowerCase() },
+            { phone: phone.trim() }
+          ]
+        }
+      });
+
+      if (existingUser) {
+        if (existingUser.email === email.toLowerCase()) {
+          return NextResponse.json({ message: 'Email already exists! Please login.' }, { status: 400 });
+        }
+        return NextResponse.json({ message: 'Phone number is already registered!' }, { status: 400 });
+      }
+
+      // Generate 6-Digit OTP
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 Mins Valid
+
+      // Save to temporary OTP table
+      await prisma.phoneVerification.upsert({
+        where: { phone: phone.trim() },
+        update: { otp: generatedOtp, expiresAt },
+        create: { phone: phone.trim(), otp: generatedOtp, expiresAt },
+      });
+
+      // SMS Console Log Debugger
+      console.log(`============= SIGNUP OTP FOR ${phone} IS: ${generatedOtp} =============`);
+
+      return NextResponse.json({ message: 'OTP sent! Please verify your phone number to complete signup.', otpSent: true }, { status: 200 });
     }
 
-    // 3. Check karo ke user pehle se register toh nahi hai
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    // Phase 2: User ne OTP daal diya hai, ab verify karke account create karo
+    const record = await prisma.phoneVerification.findUnique({
+      where: { phone: phone.trim() }
     });
 
-    if (existingUser) {
-      return NextResponse.json(
-        { message: 'Email already exists! Please login instead.' },
-        { status: 400 }
-      );
+    if (!record || record.otp !== otp) {
+      return NextResponse.json({ message: 'Invalid OTP code.' }, { status: 400 });
     }
 
-    // 4. Password ko Hash (secure) karo
-    const hashedPassword = await bcrypt.hash(password, 12);
+    if (new Date() > record.expiresAt) {
+      return NextResponse.json({ message: 'OTP has expired. Request a new one.' }, { status: 400 });
+    }
 
-    // 5. Naya user database (Supabase) mein save karo
+    // Double safe check before final insert
+    const finalCheck = await prisma.user.findFirst({
+      where: { OR: [{ email: email.toLowerCase() }, { phone: phone.trim() }] }
+    });
+    if (finalCheck) {
+      return NextResponse.json({ message: 'Email or Phone already taken during verification.' }, { status: 400 });
+    }
+
+    // Hash Password & Save User permanent
+    const hashedPassword = await bcrypt.hash(password, 12);
     const newUser = await prisma.user.create({
       data: {
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
-        role: 'USER', // Default role set kar diya
-      },
+        phone: phone.trim(),
+        role: 'USER'
+      }
     });
 
-    // Security ke liye response mein password wapas nahi bhejenge
+    // Cleanup OTP record
+    await prisma.phoneVerification.delete({ where: { phone: phone.trim() } });
+
     const { password: _, ...userWithoutPassword } = newUser;
 
-    // 🚀 AUTOMATIC LOGIN LAYER: Response hold karo taakay secure cookie set ho sake
+    // Automatically log them in by setting cookie directly on signup success
     const response = NextResponse.json(
-      { message: 'User registered successfully! Welcome to Twinkles of Joy.', user: userWithoutPassword },
+      { message: 'Account created and verified successfully!', user: userWithoutPassword },
       { status: 201 }
     );
 
-    // 🔒 SECURE COOKIE SET: Naye user ka session instantly create karo
+    // Dynamic import for JWT to prevent edge issues if any
+    const jwt = require('jsonwebtoken');
+    const sessionToken = jwt.sign(
+      { id: newUser.id, email: newUser.email, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     response.cookies.set({
       name: 'twinkles_session',
-      value: JSON.stringify(userWithoutPassword),
-      httpOnly: true, // Anti-XSS (JavaScript cannot access)
-      secure: process.env.NODE_ENV === 'production', // HTTPS in production, standard http on local
+      value: sessionToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 1 Week expiry
-      path: '/', // Global app scope access
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     });
 
     return response;
 
   } catch (error) {
-    console.error('SIGNUP_ERROR:', error);
-    return NextResponse.json(
-      { message: 'Internal Server Error', error: error.message },
-      { status: 500 }
-    );
+    console.error('SIGNUP_OTP_ROUTE_ERROR:', error);
+    return NextResponse.json({ message: 'Internal Server Error', error: error.message }, { status: 500 });
   }
 }

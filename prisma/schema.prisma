@@ -14,6 +14,7 @@ model User {
   name      String
   email     String   @unique
   password  String
+  phone     String?
   role      Role     @default(USER)
   orders    Order[]  // 🔥 User ke saare orders tracking array pipeline connect karne ke liye
   createdAt DateTime @default(now())
@@ -115,10 +116,11 @@ model OrderItem {
   price     Decimal        @db.Decimal(10, 2) // Order ke waqt jo price thi
 }
 
-// 🔑 8. NEW MODEL: Safepay Widget Temporary Token Freeze Module
-model PaymentSession {
-  id        String   @id @default(uuid())
-  userId    String
-  cartData  String   @db.Text // JSON metadata layout for temporary storage
+// 🚀 NEW MODEL: Temporary OTP Freeze Engine
+model PhoneVerification {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  otp       String
+  expiresAt DateTime
   createdAt DateTime @default(now())
 }

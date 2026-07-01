@@ -2,7 +2,34 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { SlidersHorizontal, ShoppingBag, Loader2 } from 'lucide-react';
+import { SlidersHorizontal, ShoppingBag } from 'lucide-react';
+
+// 🌟 LUXURY SKELETON LOADERS: Flat structural layout matching the theme guidelines
+function SkeletonCard() {
+  return (
+    <div className="w-full space-y-4 animate-pulse">
+      {/* Product Image Box Placeholder (Sharp corners, flat design) */}
+      <div className="w-full aspect-[4/5] bg-[#3a2e28]/5 rounded-none" />
+      
+      {/* Product Info Lines Placeholder */}
+      <div className="space-y-2 flex flex-col items-center pt-1">
+        <div className="h-2 bg-[#3a2e28]/10 w-1/4 rounded-none" />
+        <div className="h-2.5 bg-[#3a2e28]/10 w-2/3 rounded-none" />
+        <div className="h-3 bg-[#3a2e28]/5 w-1/3 rounded-none mt-1" />
+      </div>
+    </div>
+  );
+}
+
+function ShopSkeletonGrid() {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-12">
+      {[...Array(8)].map((_, index) => (
+        <SkeletonCard key={index} />
+      ))}
+    </div>
+  );
+}
 
 function ShopContent() {
   const searchParams = useSearchParams();
@@ -165,7 +192,7 @@ function ShopContent() {
           <div className="w-full overflow-x-auto lg:flex-wrap whitespace-nowrap scrollbar-none flex items-center gap-2 uppercase tracking-widest text-[9px] font-semibold pb-1 scroll-smooth snap-x">
             <button
               onClick={() => handleMainClick('All')}
-              className="px-5 py-2 border transition-all duration-200 cursor-pointer layout-btn inline-block shrink-0 snap-start"
+              className="px-5 py-2 border transition-all duration-200 cursor-pointer layout-btn inline-block shrink-0 snap-start rounded-none"
               style={{
                 backgroundColor: selectedMain === 'All' ? '#3a2e28' : 'transparent',
                 borderColor: selectedMain === 'All' ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
@@ -179,7 +206,7 @@ function ShopContent() {
               <button
                 key={cat.id}
                 onClick={() => handleMainClick(cat.id)}
-                className="px-5 py-2 border transition-all duration-200 cursor-pointer layout-btn inline-block shrink-0 snap-start"
+                className="px-5 py-2 border transition-all duration-200 cursor-pointer layout-btn inline-block shrink-0 snap-start rounded-none"
                 style={{
                   backgroundColor: selectedMain === cat.id ? '#3a2e28' : 'transparent',
                   borderColor: selectedMain === cat.id ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
@@ -197,7 +224,7 @@ function ShopContent() {
               <div className="w-full overflow-x-auto lg:flex-wrap whitespace-nowrap scrollbar-none flex items-center gap-2 uppercase tracking-widest text-[9px] font-semibold pb-1 scroll-smooth snap-x">
                 <button
                   onClick={() => handleSubClick('')}
-                  className="px-4 py-1.5 border transition-all duration-200 cursor-pointer inline-block shrink-0 snap-start"
+                  className="px-4 py-1.5 border transition-all duration-200 cursor-pointer inline-block shrink-0 snap-start rounded-none"
                   style={{
                     backgroundColor: selectedSub === '' ? '#3a2e28' : 'transparent',
                     borderColor: selectedSub === '' ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)',
@@ -210,7 +237,7 @@ function ShopContent() {
                   <button
                     key={sub.id}
                     onClick={() => handleSubClick(sub.id)}
-                    className="px-4 py-1.5 border transition-all duration-200 cursor-pointer inline-block shrink-0 snap-start"
+                    className="px-4 py-1.5 border transition-all duration-200 cursor-pointer inline-block shrink-0 snap-start rounded-none"
                     style={{
                       backgroundColor: selectedSub === sub.id ? '#3a2e28' : 'transparent',
                       borderColor: selectedSub === sub.id ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)',
@@ -263,17 +290,15 @@ function ShopContent() {
           </div>
         </div>
 
-        {/* --- Products Grid --- */}
+        {/* --- Products Grid with Shimmer Loader State Sync --- */}
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="animate-spin" style={{ color: '#3a2e28' }} size={32} />
-          </div>
+          <ShopSkeletonGrid />
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-12">
             {filteredProducts?.map((product) => (
               <div key={product.id} className="group flex flex-col relative">
                 
-                <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300">
+                <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
                   <img 
                     src={product.images?.[0]?.url || '/placeholder.jpg'} 
                     alt={product.name} 
@@ -283,7 +308,7 @@ function ShopContent() {
                   <div className="absolute inset-0 bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <Link 
                       href={`/shop/${product.id}`} 
-                      className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity"
+                      className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity rounded-none"
                       style={{ backgroundColor: '#3a2e28' }}
                     >
                       <ShoppingBag size={12} /> View Item
@@ -314,9 +339,12 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
+    // 🌟 Next.js dynamic chunks fallback optimization using the same custom skeleton structure
     <Suspense fallback={
-      <div className="min-h-screen flex justify-center items-center" style={{ backgroundColor: '#f5f3ed' }}>
-        <Loader2 className="animate-spin" style={{ color: '#3a2e28' }} size={32} />
+      <div className="min-h-screen py-32" style={{ backgroundColor: '#f5f3ed' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ShopSkeletonGrid />
+        </div>
       </div>
     }>
       <ShopContent />

@@ -19,7 +19,7 @@ export default function Hero() {
       setCurrentIndex((prevIndex) => 
         prevIndex === mobileSliderImages.length - 1 ? 0 : prevIndex + 1
       );
-    }, 2500);
+    }, 3000);
 
     return () => clearInterval(slideTimer);
   }, [mobileSliderImages.length]);
@@ -107,7 +107,7 @@ export default function Hero() {
             style={{ backgroundColor: '#f0e8d6', color: '#5a3317', borderColor: '#F5F2EB' }}
             className="group relative px-10 py-4 uppercase tracking-[0.2em] text-[10px] font-semibold hover:bg-[#F5F2EB]/90 transition-all duration-300 shadow-md flex items-center cursor-pointer"
           >
-            Our Story
+            About Us
           </Link>
         </div>
 

@@ -120,8 +120,8 @@ export default function Navbar() {
 
                             <div className="hidden md:flex space-x-8">
                                 <Link href="/shop" className="nav-link-item">Shop All</Link>
-                                <Link href="/shop?category=rings" className="nav-link-item">Rings</Link>
-                                <Link href="/shop?category=necklaces" className="nav-link-item">Necklaces</Link>
+                                <Link href="/policies" className="nav-link-item">Privacy & Refund Policy</Link>
+                                <Link href="/contact" className="nav-link-item">Contact Us</Link>
                             </div>
                         </div>
 
@@ -201,9 +201,15 @@ export default function Navbar() {
                                 <span>About Us</span>
                                 {isAboutOpen ? <Minus className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                             </button>
-                            <div className={`mt-2 pl-2 overflow-hidden transition-all duration-300 ${isAboutOpen ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className={`mt-2 pl-2 overflow-hidden transition-all duration-300 ${isAboutOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                                 <Link href="/story" onClick={() => setIsOpen(false)} className="block text-[12px] normal-case tracking-normal font-light text-[#5a3317]/80 py-1">
                                     Our Story
+                                </Link>
+                                <Link href="/policies" onClick={() => setIsOpen(false)} className="block text-[12px] normal-case tracking-normal font-light text-[#5a3317]/80 py-1">
+                                    Privacy & Refund Policy
+                                </Link>
+                                <Link href="/contact" onClick={() => setIsOpen(false)} className="block text-[12px] normal-case tracking-normal font-light text-[#5a3317]/80 py-1">
+                                    Contact Us
                                 </Link>
                             </div>
                         </div>

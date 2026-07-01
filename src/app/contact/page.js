@@ -72,7 +72,7 @@ export default function ContactPage() {
             Customer <span className="italic">Support</span> & Care
           </h1>
           <p className="text-xs sm:text-sm font-light mt-3 max-w-md mx-auto leading-relaxed opacity-80" style={{ color: '#3a2e28' }}>
-            Have a question about tracking your order, curation details, or general inquiries? Our boutique helpdesk is ready to assist you.
+            Have a question about tracking your order, curation details, or general inquiries? Our helpdesk is ready to assist you.
           </p>
         </div>
 
@@ -134,9 +134,6 @@ export default function ContactPage() {
             <div className="w-full h-[1px]" style={{ backgroundColor: 'rgba(58, 46, 40, 0.08)' }} />
             
             {/* Note Box */}
-            <div className="border p-5 text-xs font-light leading-relaxed bg-white/50" style={{ borderColor: 'rgba(58, 46, 40, 0.08)', color: '#3a2e28' }}>
-              <strong className="font-semibold">Order Tracking Tip:</strong> Agar aap apna order confirm kar chuke hain, toh koshish karein ke message mein apna exact <strong className="font-semibold">Full Name</strong> aur <strong className="font-semibold">Phone Number</strong> share karein taakay hamari dispatch team aapka tracker foran trace kar sake.
-            </div>
           </div>
 
           {/* RIGHT PANEL: Minimalist Message Form (7 Columns) */}

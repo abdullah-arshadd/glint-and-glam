@@ -129,7 +129,7 @@ export default function ReviewTextSlider() {
               <div className="relative w-full max-w-[320px] h-[240px] group mb-2 mx-auto">
                 
                 {/* Back Solid Accent Block */}
-                <div className="absolute inset-0 translate-x-2 translate-y-2 bg-[#bd977a] border border-[#3a2e28] transition-transform duration-300 group-hover:translate-x-2 group-hover:translate-y-2" />
+                <div className="absolute inset-0 translate-x-2 translate-y-2 bg-[#4C4039] border border-[#3a2e28] transition-transform duration-300 group-hover:translate-x-2 group-hover:translate-y-2" />
                 
                 {/* Front Text Canvas */}
                 <div className="absolute inset-0 bg-white border border-[#3a2e28] p-6 flex flex-col justify-between shadow-sm transition-transform duration-300">

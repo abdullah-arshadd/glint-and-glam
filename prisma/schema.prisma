@@ -95,6 +95,7 @@ model Order {
   // 🔑 NEW CHANNELS: Payment Gateways Tracking Engine
   paymentMethod String      // "COD", "CARD", ya "WALLET"
   paymentStatus String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  cancellationReason String?
   gatewayRefId  String?     // External Aggregator Redirect/Transaction Session ID Tracking
 
   items         OrderItem[]

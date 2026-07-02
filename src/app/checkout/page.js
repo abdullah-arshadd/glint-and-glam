@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { ArrowLeft, ShieldCheck, CreditCard, Wallet, Truck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Truck, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
@@ -18,8 +18,8 @@ export default function CheckoutPage() {
     notes: ''
   });
 
-  // Payment method state configuration (Keeping layout flexible for future integration)
-  const [paymentMethod, setPaymentMethod] = useState('COD'); // Options: 'COD', 'CARD', 'WALLET'
+  // Payment method state configuration - Updated to strictly support COD & BANK
+  const [paymentMethod, setPaymentMethod] = useState('COD'); // Options: 'COD', 'BANK'
 
   const shippingFee = 250;
   const grandTotal = cartTotal + shippingFee;
@@ -101,13 +101,11 @@ export default function CheckoutPage() {
         throw new Error(data.error || "Failed to process request layout");
       }
 
-      // 🛒 CASE A: CASH ON DELIVERY (COD) FLOW
-      if (paymentMethod === 'COD') {
-        toast.success("Order Placed Successfully!");
-        await clearCart();
-        window.location.href = `/order-success?orderId=${data.orderId}`;
-        return;
-      }
+      // 🛒 ORDER PLACED REDIRECTION FLOW (Works dynamically for both COD and BANK states)
+      toast.success("Order Placed Successfully!");
+      await clearCart();
+      window.location.href = `/order-success?orderId=${data.orderId}`;
+      return;
 
     } catch (error) {
       console.error("Checkout submission error:", error);
@@ -200,39 +198,21 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Method Option: Credit/Debit Card */}
+                {/* Method Option: Advance Bank Transfer */}
                 <div
-                  onClick={() => !loading && setPaymentMethod('CARD')}
+                  onClick={() => !loading && setPaymentMethod('BANK')}
                   className="border p-4 flex items-center justify-between cursor-pointer transition-all duration-300 bg-white/80"
-                  style={{ borderColor: paymentMethod === 'CARD' ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)', borderWidth: paymentMethod === 'CARD' ? '1.5px' : '1px' }}
+                  style={{ borderColor: paymentMethod === 'BANK' ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)', borderWidth: paymentMethod === 'BANK' ? '1.5px' : '1px' }}
                 >
                   <div className="flex items-center gap-3">
-                    <CreditCard size={18} style={{ color: '#3a2e28' }} />
+                    <Building2 size={18} style={{ color: '#3a2e28' }} />
                     <div>
-                      <p className="text-xs font-semibold" style={{ color: '#3a2e28' }}>Credit / Debit Card</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Secure payment processing via our upcoming bank partner.</p>
+                      <p className="text-xs font-semibold" style={{ color: '#3a2e28' }}>Advance Bank Transfer</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Transfer online via mobile banking app to process setup.</p>
                     </div>
                   </div>
                   <div className="w-3.5 h-3.5 rounded-full border flex items-center justify-center" style={{ borderColor: '#3a2e28' }}>
-                    {paymentMethod === 'CARD' && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#3a2e28' }}></div>}
-                  </div>
-                </div>
-
-                {/* Method Option: Mobile Wallets */}
-                <div
-                  onClick={() => !loading && setPaymentMethod('WALLET')}
-                  className="border p-4 flex items-center justify-between cursor-pointer transition-all duration-300 bg-white/80"
-                  style={{ borderColor: paymentMethod === 'WALLET' ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)', borderWidth: paymentMethod === 'WALLET' ? '1.5px' : '1px' }}
-                >
-                  <div className="flex items-center gap-3">
-                    <Wallet size={18} style={{ color: '#3a2e28' }} />
-                    <div>
-                      <p className="text-xs font-semibold" style={{ color: '#3a2e28' }}>Easypaisa / JazzCash Mobile Wallet</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Instant transfer from your local mobile wallet setups.</p>
-                    </div>
-                  </div>
-                  <div className="w-3.5 h-3.5 rounded-full border flex items-center justify-center" style={{ borderColor: '#3a2e28' }}>
-                    {paymentMethod === 'WALLET' && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#3a2e28' }}></div>}
+                    {paymentMethod === 'BANK' && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#3a2e28' }}></div>}
                   </div>
                 </div>
               </div>

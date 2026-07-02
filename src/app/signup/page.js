@@ -2,48 +2,37 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "", password: "" });
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState({ type: "", text: "" });
   
   const router = useRouter();
 
-  // Handle Form Submission (Phase 1: Request OTP / Phase 2: Final Verify)
+  // Handle Form Submission (Direct Signup Flow)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setStatusMessage({ type: "", text: "" });
 
-    const payload = otpSent 
-      ? { ...formData, otp: otpCode } 
-      : formData;
-
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        if (data.otpSent) {
-          setOtpSent(true);
-          setStatusMessage({ type: "success", text: `📩 ${data.message}` });
-        } else {
-          setStatusMessage({ type: "success", text: "🎉 Registration & Phone Verification Successful! Redirecting..." });
-          setTimeout(() => {
-            router.push("/");
-            router.refresh();
-          }, 1500);
-        }
+        setStatusMessage({ type: "success", text: "🎉 Registration Successful! Redirecting..." });
+        setTimeout(() => {
+          router.push("/");
+          router.refresh();
+        }, 1500);
       } else {
         setStatusMessage({ type: "error", text: `❌ ${data.message || "Something went wrong"}` });
       }
@@ -64,7 +53,7 @@ export default function SignupPage() {
           Create Account
         </h2>
         <p className="mt-2 text-center text-xs font-light opacity-70" style={{ color: '#3a2e28' }}>
-          Verify your mobile number to register securely.
+          Fill in your details to register securely.
         </p>
       </div>
 
@@ -82,7 +71,6 @@ export default function SignupPage() {
           )}
 
           <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Input fields disable ho jayenge jab OTP chala jayega */}
             <div>
               <label htmlFor="name" className="block text-xs font-medium uppercase tracking-wider" style={{ color: '#3a2e28' }}>Full Name</label>
               <div className="mt-1.5">
@@ -90,7 +78,6 @@ export default function SignupPage() {
                   id="name"
                   type="text"
                   required
-                  disabled={otpSent}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white/80 border text-xs rounded-md focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -105,9 +92,8 @@ export default function SignupPage() {
               <div className="mt-1.5">
                 <input
                   id="email"
-                  type="email"
+                  type="type"
                   required
-                  disabled={otpSent}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white/80 border text-xs rounded-md focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -124,7 +110,6 @@ export default function SignupPage() {
                   id="phone"
                   type="tel"
                   required
-                  disabled={otpSent}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white/80 border text-xs rounded-md focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -142,7 +127,6 @@ export default function SignupPage() {
                   type="password"
                   required
                   minLength={6}
-                  disabled={otpSent}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white/80 border text-xs rounded-md focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -152,32 +136,6 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Dynamic OTP Input Field Block */}
-            {otpSent && (
-              <div className="pt-4 border-t border-dashed border-gray-300 animate-in fade-in duration-300">
-                <label className="block text-xs font-medium text-amber-800 flex items-center gap-1.5 mb-2">
-                  <KeyRound size={14} /> Enter 6-Digit Verification Code
-                </label>
-                <input 
-                  type="text"
-                  maxLength={6}
-                  required
-                  placeholder="123456"
-                  className="w-full px-4 py-2.5 bg-white border text-xs tracking-widest font-bold rounded-md focus:outline-none text-center"
-                  style={{ color: '#3a2e28', borderColor: '#3a2e28' }}
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setOtpSent(false)} 
-                  className="text-[11px] text-red-500 underline mt-1.5 block cursor-pointer"
-                >
-                  Edit details or re-send code
-                </button>
-              </div>
-            )}
-
             <div>
               <button
                 type="submit"
@@ -185,7 +143,7 @@ export default function SignupPage() {
                 className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md text-xs font-semibold uppercase tracking-widest text-white transition-opacity focus:outline-none cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed hover:opacity-90"
                 style={{ backgroundColor: '#3a2e28' }}
               >
-                {loading ? "Processing..." : otpSent ? "Verify & Register" : "Send OTP & Register"}
+                {loading ? "Processing..." : "Register Account"}
               </button>
             </div>
           </form>

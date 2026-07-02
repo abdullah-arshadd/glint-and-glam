@@ -1,9 +1,9 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-// FontAwesome core aur components imports
+// FontAwesome imports (faXmarkCircle add kiya hai cancellation ke liye)
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxOpen, faTruckFast, faCircleCheck, faBagShopping, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faBoxOpen, faTruckFast, faCircleCheck, faBagShopping, faArrowRight, faXmarkCircle } from '@fortawesome/free-solid-svg-icons';
 
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -72,6 +72,7 @@ export default function MyOrdersPage() {
       ) : (
         <div className="">
           {orders.map((order) => {
+            const isCancelled = order.status === 'CANCELLED';
             const currentStep = getStepStatusIndex(order.status);
             
             return (
@@ -90,6 +91,13 @@ export default function MyOrdersPage() {
                         {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </div>
+                    {/* Status Badge Custom for Cancelled */}
+                    {isCancelled && (
+                      <div>
+                        <span className="text-gray-400 uppercase text-[9px] font-semibold tracking-wider block">Order Status</span>
+                        <span className="text-red-600 font-bold uppercase text-[10px] tracking-wider">CANCELLED</span>
+                      </div>
+                    )}
                   </div>
                   <div className="sm:text-right">
                     <span className="text-gray-400 uppercase text-[9px] font-semibold tracking-wider block">Total Amount</span>
@@ -99,73 +107,91 @@ export default function MyOrdersPage() {
                   </div>
                 </div>
 
-                {/* Tracking Progress Pipeline Section */}
-<div className="p-8 bg-white border-b border-gray-200 flex justify-center items-center">
-  <div className="w-full max-w-md relative flex items-center justify-between">
-    
-    {/* Connecting Bar Track */}
-    <div className="absolute left-0 right-0 top-4 h-[2px] bg-neutral-100 -z-0 transform -translate-y-1/2"></div>
-    <div 
-      className="absolute left-0 top-4 h-[2px] bg-[#3a2e28] transition-all duration-500 -z-0 transform -translate-y-1/2"
-      style={{ 
-        width: currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%' 
-      }}
-    ></div>
+                {/* Tracking Progress Pipeline OR Cancelled Info Display Box */}
+                {isCancelled ? (
+                  <div className="p-6 bg-red-50/50 border-b border-red-100 flex items-start gap-4">
+                    <div className="text-red-500 mt-0.5">
+                      <FontAwesomeIcon icon={faXmarkCircle} className="text-lg" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xs font-bold text-red-900 uppercase tracking-wider">This order was cancelled</h4>
+                      {order.cancellationReason ? (
+                        <p className="text-xs text-red-700 mt-1 font-light italic bg-white/60 p-3 rounded border border-red-100/60 inline-block w-full max-w-xl">
+                          &ldquo;{order.cancellationReason}&rdquo;
+                        </p>
+                      ) : (
+                        <p className="text-xs text-red-600/70 mt-1 font-light italic">No explicit reason specified by management.</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-8 bg-white border-b border-gray-200 flex justify-center items-center">
+                    <div className="w-full max-w-md relative flex items-center justify-between">
+                      
+                      {/* Connecting Bar Track */}
+                      <div className="absolute left-0 right-0 top-4 h-[2px] bg-neutral-100 -z-0 transform -translate-y-1/2"></div>
+                      <div 
+                        className="absolute left-0 top-4 h-[2px] bg-[#3a2e28] transition-all duration-500 -z-0 transform -translate-y-1/2"
+                        style={{ 
+                          width: currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%' 
+                        }}
+                      ></div>
 
-    {/* Step 1: Placed */}
-    <div className="flex flex-col items-center relative z-10 text-center flex-1">
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 ${
-        currentStep === 1 
-          ? 'bg-[#3a2e28] text-white border-[#3a2e28] shadow-xs' 
-          : currentStep > 1 
-            ? 'bg-[#f0e8d6] text-[#3a2e28] border-[#3a2e28]/30' 
-            : 'bg-white text-neutral-400 border-neutral-200'
-      }`}>
-        <FontAwesomeIcon icon={faBoxOpen} className="text-xs" />
-      </div>
-      <span className={`text-[9px] uppercase font-bold tracking-widest mt-2.5 block ${
-        currentStep === 1 ? 'text-[#3a2e28] font-extrabold' : currentStep > 1 ? 'text-[#3a2e28]/80 font-medium' : 'text-neutral-400'
-      }`}>
-        Placed
-      </span>
-    </div>
+                      {/* Step 1: Placed */}
+                      <div className="flex flex-col items-center relative z-10 text-center flex-1">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 ${
+                          currentStep === 1 
+                            ? 'bg-[#3a2e28] text-white border-[#3a2e28] shadow-xs' 
+                            : currentStep > 1 
+                              ? 'bg-[#f0e8d6] text-[#3a2e28] border-[#3a2e28]/30' 
+                              : 'bg-white text-neutral-400 border-neutral-200'
+                        }`}>
+                          <FontAwesomeIcon icon={faBoxOpen} className="text-xs" />
+                        </div>
+                        <span className={`text-[9px] uppercase font-bold tracking-widest mt-2.5 block ${
+                          currentStep === 1 ? 'text-[#3a2e28] font-extrabold' : currentStep > 1 ? 'text-[#3a2e28]/80 font-medium' : 'text-neutral-400'
+                        }`}>
+                          Placed
+                        </span>
+                      </div>
 
-    {/* Step 2: Shipped */}
-    <div className="flex flex-col items-center relative z-10 text-center flex-1">
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 ${
-        currentStep === 2 
-          ? 'bg-[#3a2e28] text-white border-[#3a2e28] shadow-xs' 
-          : currentStep > 2 
-            ? 'bg-[#f0e8d6] text-[#3a2e28] border-[#3a2e28]/30' 
-            : 'bg-white text-neutral-400 border-neutral-200'
-      }`}>
-        <FontAwesomeIcon icon={faTruckFast} className="text-xs" />
-      </div>
-      <span className={`text-[9px] uppercase font-bold tracking-widest mt-2.5 block ${
-        currentStep === 2 ? 'text-[#3a2e28] font-extrabold' : currentStep > 2 ? 'text-[#3a2e28]/80 font-medium' : 'text-neutral-400'
-      }`}>
-        Shipped
-      </span>
-    </div>
+                      {/* Step 2: Shipped */}
+                      <div className="flex flex-col items-center relative z-10 text-center flex-1">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 ${
+                          currentStep === 2 
+                            ? 'bg-[#3a2e28] text-white border-[#3a2e28] shadow-xs' 
+                            : currentStep > 2 
+                              ? 'bg-[#f0e8d6] text-[#3a2e28] border-[#3a2e28]/30' 
+                              : 'bg-white text-neutral-400 border-neutral-200'
+                        }`}>
+                          <FontAwesomeIcon icon={faTruckFast} className="text-xs" />
+                        </div>
+                        <span className={`text-[9px] uppercase font-bold tracking-widest mt-2.5 block ${
+                          currentStep === 2 ? 'text-[#3a2e28] font-extrabold' : currentStep > 2 ? 'text-[#3a2e28]/80 font-medium' : 'text-neutral-400'
+                        }`}>
+                          Shipped
+                        </span>
+                      </div>
 
-    {/* Step 3: Delivered */}
-    <div className="flex flex-col items-center relative z-10 text-center flex-1">
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 ${
-        currentStep === 3 
-          ? 'bg-[#3a2e28] text-white border-[#3a2e28] shadow-xs' 
-          : 'bg-white text-neutral-400 border-neutral-200'
-      }`}>
-        <FontAwesomeIcon icon={faCircleCheck} className="text-xs" />
-      </div>
-      <span className={`text-[9px] uppercase font-bold tracking-widest mt-2.5 block ${
-        currentStep === 3 ? 'text-[#3a2e28] font-extrabold' : 'text-neutral-400'
-      }`}>
-        Delivered
-      </span>
-    </div>
+                      {/* Step 3: Delivered */}
+                      <div className="flex flex-col items-center relative z-10 text-center flex-1">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-300 ${
+                          currentStep === 3 
+                            ? 'bg-[#3a2e28] text-white border-[#3a2e28] shadow-xs' 
+                            : 'bg-white text-neutral-400 border-neutral-200'
+                        }`}>
+                          <FontAwesomeIcon icon={faCircleCheck} className="text-xs" />
+                        </div>
+                        <span className={`text-[9px] uppercase font-bold tracking-widest mt-2.5 block ${
+                          currentStep === 3 ? 'text-[#3a2e28] font-extrabold' : 'text-neutral-400'
+                        }`}>
+                          Delivered
+                        </span>
+                      </div>
 
-  </div>
-</div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Items List Rendering */}
                 <div className="divide-y divide-gray-50 px-6 bg-white">

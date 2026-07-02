@@ -116,12 +116,35 @@ export async function POST(req) {
       return NextResponse.json({ success: true, orderId: newOrder.id, isRedirect: false });
     }
 
-    // --- 💳 FUTURE PAYMENT GATEWAY HOOK PLACEHOLDER ---
-    // Jab naya payment gateway integrate karna ho, toh uska case yahan switch chain karein.
-    if (paymentMethod === 'CARD' || paymentMethod === 'WALLET') {
-      return NextResponse.json({ 
-        error: "Online payment gateway is temporarily under maintenance. Please select Cash on Delivery." 
-      }, { status: 400 });
+    // --- 🏦 CASE B: ADVANCE BANK TRANSFER (BANK) ---
+    if (paymentMethod === 'BANK') {
+      const newOrder = await prisma.$transaction(async (tx) => {
+        const order = await tx.order.create({
+          data: {
+            fullName, phone, city, address, notes: notes || "",
+            totalAmount: Number(total), status: 'PENDING', userId: loggedInUserId,
+            paymentMethod: 'BANK', paymentStatus: 'PENDING', gatewayRefId: null,
+            items: {
+              create: items.map((item) => ({
+                variantId: String(item.variantId || item.variant?.id || item.id),
+                quantity: Number(item.quantity),
+                price: Number(item.variant?.price || item.price || 0),
+              })),
+            },
+          },
+        });
+
+        for (const item of items) {
+          const vId = item.variantId || item.variant?.id || item.id;
+          await tx.productVariant.update({
+            where: { id: String(vId) },
+            data: { stock: { decrement: Number(item.quantity) } }
+          });
+        }
+        return order;
+      });
+
+      return NextResponse.json({ success: true, orderId: newOrder.id, isRedirect: false });
     }
 
     return NextResponse.json({ error: "Invalid payment method structure." }, { status: 400 });

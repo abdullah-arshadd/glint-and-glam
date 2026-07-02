@@ -32,12 +32,13 @@ export default function AdminDashboard() {
         calculatedOrdersLength = activeOrders.length;
 
         salesCalculated = activeOrders.reduce((acc, curr) => {
-          // Condition: Add to revenue only if payment method is card/online (instant pay) 
-          // OR if the order fulfillment state is explicitly marked as 'delivered'
-          const isInstantPaid = curr.paymentMethod !== 'cod' && curr.paymentStatus === 'paid';
-          const isCodDelivered = curr.paymentMethod === 'cod' && curr.status?.toLowerCase() === 'delivered';
+          // 🔑 UPDATED REVENUE ENGINE: 
+          // Kisi bhi method se order aya ho, agar backend se 'FULL_PAID' ho chuka hai, toh revenue mein calculate hoga.
+          // Fallback check ke liye aap purani explicit states bhi or (||) ke sath add rakh sakte hain taake backup data break na ho.
+          const isFullPaid = curr.paymentStatus === 'FULL_PAID' || curr.paymentStatus === 'PAID';
+          const isCodDelivered = curr.paymentMethod === 'COD' && curr.status === 'DELIVERED';
 
-          if (isInstantPaid || isCodDelivered) {
+          if (isFullPaid || isCodDelivered) {
             return acc + Number(curr.totalAmount || 0);
           }
           return acc;
@@ -52,7 +53,7 @@ export default function AdminDashboard() {
         activeProducts.forEach(product => {
           if (product?.variants && Array.isArray(product.variants)) {
             product.variants.forEach(variant => {
-              // Low stock threshold condition: yahan aap 'variant.stock === 0' ya apne mutabik limit set kar sakte hain
+              // Low stock threshold condition
               if (Number(variant.stock || 0) <= 0) {
                 lowStockCount++;
               }

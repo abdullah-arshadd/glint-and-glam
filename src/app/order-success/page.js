@@ -1,13 +1,14 @@
 'use client';
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle, ShoppingBag, Truck, Calendar, Hash } from 'lucide-react';
+import { CheckCircle, ShoppingBag, Truck, Calendar, Hash, Compass } from 'lucide-react';
 import Link from 'next/link';
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
-  const [isHovered, setIsHovered] = useState(false);
+  const [isShopHovered, setIsShopHovered] = useState(false);
+  const [isTrackHovered, setIsTrackHovered] = useState(false);
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,18 +16,17 @@ function OrderSuccessContent() {
   useEffect(() => {
     if (!orderId) return;
 
-    let isMounted = true; // 🔑 Memory leak aur infinite state trigger se bachne ke liye
+    let isMounted = true;
 
     const fetchOrderDetails = async () => {
       try {
-        // 🔑 Live domain check dynamic lookup taake serverless functions crash na hon
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
         const res = await fetch(`${baseUrl}/api/orders/${orderId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-          cache: 'no-store' // 🔑 Force fresh data taake cached response infinite wait na karaye
+          cache: 'no-store'
         });
 
         if (res.ok) {
@@ -47,7 +47,7 @@ function OrderSuccessContent() {
     fetchOrderDetails();
 
     return () => {
-      isMounted = false; // Cleanup execution context
+      isMounted = false;
     };
   }, [orderId]);
 
@@ -65,8 +65,12 @@ function OrderSuccessContent() {
   if (loading) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#FBF9F6] [font-family:'Plus_Jakarta_Sans',sans-serif]">
-        <div className="w-8 h-8 border-2 border-[#2D2524] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs text-gray-500 mt-4 tracking-widest uppercase">Loading your receipt...</p>
+        <div className="relative flex items-center justify-center w-16 h-16">
+          <div className="absolute w-12 h-12 border border-dashed border-[#2D2524]/20 rounded-full"></div>
+          <div className="absolute w-12 h-12 border-t-2 border-r-2 border-[#2D2524] rounded-full animate-spin"></div>
+          <div className="w-2 h-2 bg-[#BD977A] rounded-full animate-ping"></div>
+        </div>
+        <p className="text-[10px] text-gray-400 mt-6 tracking-[0.2em] uppercase font-light">Retrieving Receipt Context...</p>
       </main>
     );
   }
@@ -96,21 +100,25 @@ function OrderSuccessContent() {
             Thank you for your order!
           </h1>
           <p className="text-xs text-gray-500 mt-2 max-w-md mx-auto leading-relaxed">
-            Your order has been placed successfully via Cash on Delivery (COD). We are preparing your package for shipment.
+            Your order has been placed successfully. We are preparing your package for shipment.
           </p>
         </div>
 
         {/* Meta Info (ID, Date, Status) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white border border-gray-100 p-4 shadow-2xs flex items-center gap-3">
-            <Hash size={16} className="text-[#2D2524]/60" />
-            <div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white border border-gray-100 p-4 shadow-2xs flex items-center gap-3 min-w-0">
+            <div className="flex-shrink-0">
+              <Hash size={16} className="text-[#2D2524]/60" />
+            </div>
+            <div className="min-w-0 flex-1">
               <span className="block text-[9px] uppercase tracking-widest text-gray-400 font-semibold">Order ID</span>
-              <span className="text-[11px] font-mono text-gray-700 block truncate max-w-[140px]">{order.id}</span>
+              <span className="text-[11px] font-mono text-gray-700 block break-all selection:bg-amber-100">{order.id}</span>
             </div>
           </div>
-          <div className="bg-white border border-gray-100 p-4 shadow-2xs flex items-center gap-3">
-            <Calendar size={16} className="text-[#2D2524]/60" />
+          <div className="bg-white border border-gray-100 p-4 shadow-2xs flex items-center gap-3 min-w-0">
+            <div className="flex-shrink-0">
+              <Calendar size={16} className="text-[#2D2524]/60" />
+            </div>
             <div>
               <span className="block text-[9px] uppercase tracking-widest text-gray-400 font-semibold">Date</span>
               <span className="text-xs text-gray-700 font-medium">
@@ -118,8 +126,10 @@ function OrderSuccessContent() {
               </span>
             </div>
           </div>
-          <div className="bg-white border border-gray-100 p-4 shadow-2xs flex items-center gap-3 col-span-2 sm:col-span-1">
-            <Truck size={16} className="text-[#2D2524]/60" />
+          <div className="bg-white border border-gray-100 p-4 shadow-2xs flex items-center gap-3 min-w-0">
+            <div className="flex-shrink-0">
+              <Truck size={16} className="text-[#2D2524]/60" />
+            </div>
             <div>
               <span className="block text-[9px] uppercase tracking-widest text-gray-400 font-semibold">Status</span>
               <span className="inline-block text-[10px] uppercase font-bold tracking-wider text-[#2D2524] bg-[#2D2524]/5 px-2 py-0.5 rounded-sm mt-0.5">
@@ -192,18 +202,29 @@ function OrderSuccessContent() {
 
         </div>
 
-        {/* Bottom Actions */}
-        <div className="mt-8 text-center">
+        {/* Bottom Actions Layout */}
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/orders"
+            onMouseEnter={() => setIsTrackHovered(true)}
+            onMouseLeave={() => setIsTrackHovered(false)}
+            className="w-full sm:w-auto px-8 py-3.5 uppercase text-xs tracking-widest transition-all duration-300 font-semibold border border-[#3a2e28] text-center"
+            style={{
+              backgroundColor: isTrackHovered ? '#3a2e28' : 'transparent',
+              color: isTrackHovered ? '#ffffff' : '#3a2e28',
+            }}
+          >
+            Track Order
+          </Link>
+
           <Link
             href="/shop"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className="mt-6 px-8 py-3.5 uppercase text-xs tracking-widest transition-all duration-300 font-semibold shadow-xs"
+            onMouseEnter={() => setIsShopHovered(true)}
+            onMouseLeave={() => setIsShopHovered(false)}
+            className="w-full sm:w-auto px-8 py-3.5 uppercase text-xs tracking-widest transition-all duration-300 font-semibold text-center border border-transparent"
             style={{
-              backgroundColor: isHovered ? '#BD977A' : '#3a2e28',
+              backgroundColor: isShopHovered ? '#BD977A' : '#3a2e28',
               color: '#ffffff',
-              display: 'inline-block',
-              textAlign: 'center'
             }}
           >
             Continue Shopping
@@ -219,8 +240,12 @@ export default function OrderSuccessPage() {
   return (
     <Suspense fallback={
       <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-[#FBF9F6] [font-family:'Plus_Jakarta_Sans',sans-serif]">
-        <div className="w-8 h-8 border-2 border-[#2D2524] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs text-gray-500 mt-4 tracking-widest uppercase">Initializing receipt data...</p>
+        <div className="relative flex items-center justify-center w-16 h-16">
+          <div className="absolute w-12 h-12 border border-dashed border-[#2D2524]/20 rounded-full"></div>
+          <div className="absolute w-12 h-12 border-t-2 border-r-2 border-[#2D2524] rounded-full animate-spin"></div>
+          <div className="w-2 h-2 bg-[#BD977A] rounded-full animate-ping"></div>
+        </div>
+        <p className="text-[10px] text-gray-400 mt-6 tracking-[0.2em] uppercase font-light">Initializing receipt data...</p>
       </main>
     }>
       <OrderSuccessContent />

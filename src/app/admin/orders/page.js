@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
-import { Eye, Clock, CheckCircle, Truck, AlertCircle, ChevronLeft, ChevronRight, XCircle, DollarSign } from 'lucide-react';
+import { Eye, Clock, CheckCircle, Truck, AlertCircle, ChevronLeft, ChevronRight, XCircle, DollarSign, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminOrders() {
@@ -10,11 +10,19 @@ export default function AdminOrders() {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     
+    // 🌟 NEW: Pagination States
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10); // Change this to show more items per page
+    
     // Modal states for Cancellation
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
     const [submittingCancel, setSubmittingCancel] = useState(false);
+
+    // Modal states for Payment Proof
+    const [isProofModalOpen, setIsProofModalOpen] = useState(false);
+    const [currentProof, setCurrentProof] = useState({ image: null, orderId: null });
 
     const scrollContainerRef = useRef(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -54,6 +62,9 @@ export default function AdminOrders() {
             );
         }
         setFilteredOrders(result);
+        
+        // 🌟 Reset to page 1 whenever filters or search terms change
+        setCurrentPage(1);
     }, [statusFilter, searchTerm, orders]);
 
     const handleScroll = () => {
@@ -144,7 +155,7 @@ export default function AdminOrders() {
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paymentStatus }) // UNPAID, HALF_PAID, FULL_PAID (Handles total sales increments on backend)
+                body: JSON.stringify({ paymentStatus }) 
             });
 
             if (res.ok) {
@@ -178,6 +189,12 @@ export default function AdminOrders() {
                 return 'bg-rose-50 text-rose-700 border border-rose-200 px-2 py-1 rounded-xs font-semibold';
         }
     };
+
+    // 🌟 PAGINATION MATH CALCULATION
+    const indexOfLastOrder = currentPage * itemsPerPage;
+    const indexOfFirstOrder = indexOfLastOrder - itemsPerPage;
+    const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
     return (
         <div className="space-y-6 [font-family:'Plus_Jakarta_Sans',sans-serif]">
@@ -247,80 +264,207 @@ export default function AdminOrders() {
             </div>
 
             {/* ORDERS TABLE */}
-            <div className="bg-white border border-gray-100 overflow-x-auto shadow-xs">
+            <div className="bg-white border border-gray-100 overflow-x-auto shadow-xs flex flex-col">
                 {loading ? (
                     <div className="p-8 text-center text-xs text-gray-400">Syncing live orders data...</div>
                 ) : filteredOrders.length === 0 ? (
                     <div className="p-8 text-center text-xs text-gray-400">No matching orders found.</div>
                 ) : (
-                    <table className="w-full text-left border-collapse table-fixed min-w-[1100px]">
-                        <thead>
-                            <tr className="border-b border-gray-100 bg-gray-50/50 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
-                                <th className="p-4 w-[140px]">Order ID</th>
-                                <th className="p-4 w-auto">Customer</th>
-                                <th className="p-4 w-[120px]">City</th>
-                                <th className="p-4 w-[130px]">Amount</th>
-                                <th className="p-4 w-[130px]">Payment Settlement</th>
-                                <th className="p-4 w-[110px]">Logistics Status</th>
-                                <th className="p-4 text-right w-[140px]">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-xs divide-y divide-gray-50">
-                            {filteredOrders.map((order) => (
-                                <tr key={order.id} className="hover:bg-gray-50/40 transition-colors">
-                                    <td className="p-4 font-semibold text-[#2D2524] truncate">
-                                        #{order.id}
-                                    </td>
-                                    <td className="p-4">
-                                        <p className="font-medium text-gray-700 truncate">{order.fullName}</p>
-                                        <p className="text-[10px] text-gray-400 mt-0.5">{order.phone}</p>
-                                    </td>
-                                    <td className="p-4 text-gray-500 truncate">{order.city}</td>
-                                    <td className="p-4 font-medium text-gray-800 whitespace-nowrap">Rs. {Number(order.totalAmount || order.total || 0).toLocaleString()}</td>
-                                    
-                                    {/* Payment Metric Column */}
-                                    <td className="p-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <span className={`text-[9px] text-center tracking-wide inline-block ${getPaymentStyle(order.paymentStatus || 'UNPAID')}`}>
-                                                {(order.paymentStatus || 'UNPAID').replace('_', ' ')}
-                                            </span>
-                                            <select
-                                                value={order.paymentStatus || 'UNPAID'}
-                                                onChange={(e) => handlePaymentStatusChange(order.id, e.target.value)}
-                                                className="border border-gray-100 p-1 text-[9px] bg-white text-gray-500 outline-none rounded-xs cursor-pointer"
+                    <>
+                        <div className="flex-1 overflow-x-auto">
+                            <table className="w-full text-left border-collapse table-fixed min-w-[1100px]">
+                                <thead>
+                                    <tr className="border-b border-gray-100 bg-gray-50/50 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
+                                        <th className="p-4 w-[140px]">Order ID</th>
+                                        <th className="p-4 w-auto">Customer</th>
+                                        <th className="p-4 w-[120px]">City</th>
+                                        <th className="p-4 w-[130px]">Amount</th>
+                                        <th className="p-4 w-[150px]">Payment Settlement</th>
+                                        <th className="p-4 w-[110px]">Logistics Status</th>
+                                        <th className="p-4 text-right w-[140px]">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-xs divide-y divide-gray-50">
+                                    {/* 🌟 Using currentOrders instead of filteredOrders mapped array */}
+                                    {currentOrders.map((order) => (
+                                        <tr key={order.id} className="hover:bg-gray-50/40 transition-colors">
+                                            <td className="p-4 font-semibold text-[#2D2524] truncate">
+                                                #{order.id}
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="font-medium text-gray-700 truncate">{order.fullName}</p>
+                                                <p className="text-[10px] text-gray-400 mt-0.5">{order.phone}</p>
+                                            </td>
+                                            <td className="p-4 text-gray-500 truncate">{order.city}</td>
+                                            <td className="p-4 font-medium text-gray-800 whitespace-nowrap">Rs. {Number(order.totalAmount || order.total || 0).toLocaleString()}</td>
+                                            
+                                            <td className="p-4">
+                                                <div className="flex flex-col gap-2 items-start">
+                                                    <div className="flex gap-2 w-full">
+                                                        <select
+                                                            value={order.paymentStatus || 'UNPAID'}
+                                                            onChange={(e) => handlePaymentStatusChange(order.id, e.target.value)}
+                                                            className={`border border-gray-100 p-1 font-semibold text-[9px] outline-none rounded-xs cursor-pointer ${getPaymentStyle(order.paymentStatus || 'UNPAID')}`}
+                                                        >
+                                                            <option value="UNPAID">UNPAID</option>
+                                                            <option value="HALF_PAID">HALF PAID</option>
+                                                            <option value="FULL_PAID">FULL PAID</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {order.paymentProof && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setCurrentProof({ image: order.paymentProof, orderId: order.id });
+                                                                setIsProofModalOpen(true);
+                                                            }}
+                                                            className="flex items-center gap-1.5 text-[10px] text-blue-600 hover:text-blue-800 font-semibold uppercase tracking-wider transition-colors"
+                                                        >
+                                                            <ImageIcon size={12} /> View Proof
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="p-4">
+                                                <span className={`inline-block text-[9px] font-bold tracking-wider uppercase whitespace-nowrap ${getStatusStyle(order.status)}`}>
+                                                    {order.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <select
+                                                    value={order.status}
+                                                    onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                                    className="border border-gray-200 p-1.5 text-[10px] bg-white text-gray-600 outline-none focus:border-[#DB93B0] cursor-pointer rounded-xs w-full max-w-[120px]"
+                                                >
+                                                    <option value="PENDING">Pending</option>
+                                                    <option value="SHIPPED">Shipped</option>
+                                                    <option value="DELIVERED">Delivered</option>
+                                                    <option value="CANCELLED">Cancel Order</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* 🌟 PAGINATION CONTROLS */}
+                        {totalPages > 0 && (
+                            <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/30 px-4 py-3 sm:px-6">
+                                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+                                            Showing <span className="font-bold text-gray-700">{indexOfFirstOrder + 1}</span> to <span className="font-bold text-gray-700">{Math.min(indexOfLastOrder, filteredOrders.length)}</span> of <span className="font-bold text-gray-700">{filteredOrders.length}</span> Orders
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        {/* Items Per Page Selector */}
+                                        <div className="flex items-center gap-2 text-[10px] uppercase font-medium text-gray-500 tracking-wider">
+                                            Rows:
+                                            <select 
+                                                value={itemsPerPage} 
+                                                onChange={(e) => {
+                                                    setItemsPerPage(Number(e.target.value));
+                                                    setCurrentPage(1); // Reset to page 1 on changing quantity
+                                                }}
+                                                className="border border-gray-200 rounded-xs px-1.5 py-1 outline-none bg-white cursor-pointer"
                                             >
-                                                <option value="UNPAID">Unpaid</option>
-                                                <option value="HALF_PAID">Half Paid</option>
-                                                <option value="FULL_PAID">Full Paid</option>
+                                                <option value={10}>10</option>
+                                                <option value={25}>25</option>
+                                                <option value={50}>50</option>
                                             </select>
                                         </div>
-                                    </td>
 
-                                    <td className="p-4">
-                                        <span className={`inline-block text-[9px] font-bold tracking-wider uppercase whitespace-nowrap ${getStatusStyle(order.status)}`}>
-                                            {order.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <select
-                                            value={order.status}
-                                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                                            className="border border-gray-200 p-1.5 text-[10px] bg-white text-gray-600 outline-none focus:border-[#DB93B0] cursor-pointer rounded-xs w-full max-w-[120px]"
-                                        >
-                                            <option value="PENDING">Pending</option>
-                                            <option value="SHIPPED">Shipped</option>
-                                            <option value="DELIVERED">Delivered</option>
-                                            <option value="CANCELLED">Cancel Order</option>
-                                        </select>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                        {/* Page Numbers Navigation */}
+                                        <nav className="isolate inline-flex -space-x-px rounded-xs shadow-xs" aria-label="Pagination">
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                                disabled={currentPage === 1}
+                                                className="relative inline-flex items-center rounded-l-xs px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                                            </button>
+                                            <span className="relative inline-flex items-center px-4 py-1.5 text-[10px] font-bold text-gray-700 ring-1 ring-inset ring-gray-200">
+                                                PAGE {currentPage} / {totalPages}
+                                            </span>
+                                            <button
+                                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                                disabled={currentPage === totalPages}
+                                                className="relative inline-flex items-center rounded-r-xs px-2 py-1.5 text-gray-400 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                                            </button>
+                                        </nav>
+                                    </div>
+                                </div>
+                                
+                                {/* Mobile Version Pagination */}
+                                <div className="flex flex-1 items-center justify-between sm:hidden">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="relative inline-flex items-center rounded-xs border border-gray-200 bg-white px-3 py-1.5 text-[10px] uppercase font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-[10px] font-bold text-gray-600">
+                                        {currentPage} / {totalPages}
+                                    </span>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="relative ml-3 inline-flex items-center rounded-xs border border-gray-200 bg-white px-3 py-1.5 text-[10px] uppercase font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
-            {/* CUSTOM MINIMALIST CANCELLATION MODAL */}
+            {/* PAYMENT PROOF IMAGE MODAL */}
+            {isProofModalOpen && (
+                <div className="fixed inset-0 bg-[#2D2524]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setIsProofModalOpen(false)}>
+                    <div 
+                        className="bg-white w-full max-w-lg p-6 border border-gray-100 shadow-2xl rounded-sm transform transition-all flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()} 
+                    >
+                        <div className="flex items-center justify-between border-b pb-4 mb-4">
+                            <div>
+                                <h3 className="text-lg font-semibold text-[#2D2524] [font-family:'Cormorant_Garamond',serif]">
+                                    Payment Screenshot
+                                </h3>
+                                <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Order #{currentProof.orderId}</p>
+                            </div>
+                            <button onClick={() => setIsProofModalOpen(false)} className="text-gray-400 hover:text-rose-600 transition-colors">
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-auto flex justify-center bg-gray-50 border border-gray-100 p-2 rounded-xs">
+                            <img 
+                                src={currentProof.image} 
+                                alt={`Proof for Order #${currentProof.orderId}`} 
+                                className="max-w-full h-auto object-contain"
+                            />
+                        </div>
+                        
+                        <div className="mt-4 flex justify-end">
+                            <button 
+                                onClick={() => setIsProofModalOpen(false)}
+                                className="px-5 py-2 bg-[#3a2e28] text-white font-medium tracking-wide uppercase text-[10px] hover:bg-[#BD977A] transition-colors rounded-xs"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CANCELLATION MODAL */}
             {isCancelModalOpen && (
                 <div className="fixed inset-0 bg-[#2D2524]/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
                     <div className="bg-white w-full max-w-md p-6 border border-gray-100 shadow-xl rounded-xs transform transition-all space-y-4">
@@ -343,7 +487,7 @@ export default function AdminOrders() {
                                 <textarea
                                     value={cancelReason}
                                     onChange={(e) => setCancelReason(e.target.value)}
-                                    placeholder="e.g., Out of stock items, Invalid delivery address, Customer requested cancellation..."
+                                    placeholder="e.g., Out of stock items, Invalid delivery address..."
                                     rows={3}
                                     required
                                     className="w-full text-xs p-3 border border-gray-200 focus:border-rose-400 focus:outline-none resize-none rounded-xs bg-gray-50/20"

@@ -2,7 +2,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { SlidersHorizontal, ShoppingBag } from 'lucide-react';
+// 🌟 Added ChevronDown for the dropdown UI
+import { SlidersHorizontal, ShoppingBag, ChevronDown } from 'lucide-react';
 
 // 🌟 LUXURY SKELETON LOADERS: Flat structural layout matching the theme guidelines
 function SkeletonCard() {
@@ -47,6 +48,9 @@ function ShopContent() {
   const [selectedMain, setSelectedMain] = useState('All');
   const [selectedSub, setSelectedSub] = useState('');
   const [selectedChild, setSelectedChild] = useState('');
+  
+  // 🌟 NEW: Sorting State
+  const [sortOption, setSortOption] = useState('default');
 
   // 🔑 URL Dynamic Sync Pipeline
   useEffect(() => {
@@ -158,6 +162,7 @@ function ShopContent() {
     return ids;
   };
 
+  // 🌟 STEP 1: Filter the products
   const filteredProducts = products.filter(p => {
     if (!p) return false;
     const activeTargetId = selectedChild || selectedSub || selectedMain;
@@ -165,6 +170,27 @@ function ShopContent() {
 
     const validCategoryScopeIds = getChildIdsRecursive(activeTargetId, allCategoriesFlat);
     return validCategoryScopeIds.includes(p.categoryId);
+  });
+
+  // 🌟 STEP 2: Sort the filtered products based on the selected option
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortOption === 'price-asc') {
+      const priceA = a.variants?.length > 0 ? Number(a.variants[0].price) : 0;
+      const priceB = b.variants?.length > 0 ? Number(b.variants[0].price) : 0;
+      return priceA - priceB;
+    }
+    if (sortOption === 'price-desc') {
+      const priceA = a.variants?.length > 0 ? Number(a.variants[0].price) : 0;
+      const priceB = b.variants?.length > 0 ? Number(b.variants[0].price) : 0;
+      return priceB - priceA;
+    }
+    if (sortOption === 'name-asc') {
+      return a.name.localeCompare(b.name);
+    }
+    if (sortOption === 'name-desc') {
+      return b.name.localeCompare(a.name);
+    }
+    return 0; // Default order
   });
 
   const mainCategories = categories.filter(c => !c.parentId);
@@ -186,7 +212,7 @@ function ShopContent() {
         </div>
 
         {/* --- Filters & Utility Bar --- */}
-        <div className="flex flex-col border-b pb-4 mb-12 gap-5 select-none" style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }}>
+        <div className="flex flex-col pb-4 mb-12 gap-5 select-none">
           
           {/* Level 1: Main Categories */}
           <div className="w-full overflow-x-auto lg:flex-wrap whitespace-nowrap scrollbar-none flex items-center gap-2 uppercase tracking-widest text-[9px] font-semibold pb-1 scroll-smooth snap-x">
@@ -284,9 +310,37 @@ function ShopContent() {
             </div>
           )}
 
-          {/* Active Items Count Indicator */}
-          <div className="text-[10px] uppercase tracking-widest opacity-70 flex items-center gap-1 shrink-0 justify-end mt-2" style={{ color: '#3a2e28' }}>
-            <SlidersHorizontal size={12} /> {filteredProducts?.length || 0} Items
+          {/* 🌟 REPLACED: Active Items Count & Sort Dropdown */}
+          <div className="flex items-center justify-between w-full mt-4 pt-4" style={{ borderTop: '1px solid rgba(58, 46, 40, 0.08)' }}>
+            
+            {/* Left side: Item Count */}
+            <div className="text-[10px] uppercase tracking-widest opacity-70 flex items-center gap-1 shrink-0" style={{ color: '#3a2e28' }}>
+              {sortedProducts?.length || 0} Items
+            </div>
+            
+            {/* Right side: Functional Sort Dropdown */}
+            <div className="relative flex items-center gap-2 text-[10px] uppercase tracking-widest bg-transparent" style={{ color: '#3a2e28' }}>
+              <SlidersHorizontal size={12} className="opacity-70" />
+              
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="bg-transparent border-none outline-none cursor-pointer uppercase tracking-widest opacity-80 hover:opacity-100 transition-opacity appearance-none pr-4 pl-1 z-10"
+                style={{ color: '#3a2e28' }}
+              >
+                <option value="default">Sort By</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="name-asc">Alphabetically: A-Z</option>
+                <option value="name-desc">Alphabetically: Z-A</option>
+              </select>
+              
+              {/* Custom dropdown arrow for seamless luxury UI */}
+              <div className="absolute right-0 pointer-events-none opacity-70 z-0">
+                <ChevronDown size={12} />
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -295,7 +349,8 @@ function ShopContent() {
           <ShopSkeletonGrid />
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-12">
-            {filteredProducts?.map((product) => (
+            {/* 🌟 UPDATED: Mapping sortedProducts instead of filteredProducts */}
+            {sortedProducts?.map((product) => (
               <div key={product.id} className="group flex flex-col relative">
                 
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">

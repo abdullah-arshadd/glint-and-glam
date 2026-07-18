@@ -20,6 +20,14 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Account not found. Please register first!' }, { status: 404 });
     }
 
+    // 🌟 NEW: Strict Verification Check (Block login if email is not verified)
+    if (!user.isVerified) {
+      return NextResponse.json(
+        { message: 'Please verify your email first. Go to signup to request a new code.' }, 
+        { status: 403 }
+      );
+    }
+
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
       return NextResponse.json({ message: 'Invalid password. Please try again.' }, { status: 401 });

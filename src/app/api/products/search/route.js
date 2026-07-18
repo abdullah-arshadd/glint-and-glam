@@ -33,6 +33,13 @@ export async function GET(request) {
       select: {
         id: true,
         name: true,
+        // 🌟 NEW: Image fetch karne ke liye add kiya hai
+        images: {
+          select: {
+            url: true,
+          },
+          take: 1, // Sirf main/pehli image utha rahe hain thumbnail ke liye
+        },
         category: {
           select: {
             name: true,
@@ -56,6 +63,8 @@ export async function GET(request) {
       category: product.category?.name || null,
       slug: product.category?.slug || "", // Parent category ka slug redirection ke liye
       price: product.variants[0]?.price ? Number(product.variants[0].price) : null,
+      // 🌟 NEW: Frontend ke liye cleanly image URL map kar diya
+      imageUrl: product.images[0]?.url || null, 
     }));
 
     return NextResponse.json(

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { Resend } from 'resend';
+
+// Resend initialization using your API key from .env
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
@@ -12,7 +16,12 @@ export async function POST(request) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
-    // Strict Uniqueness Check (Database level verification se pehle code level block)
+    // 🌟 Generate a 6-digit OTP and set expiry (15 minutes)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const tokenExpiry = new Date(Date.now() + 15 * 60 * 1000);
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Strict Uniqueness Check
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
@@ -23,51 +32,67 @@ export async function POST(request) {
     });
 
     if (existingUser) {
-      if (existingUser.email === email.toLowerCase()) {
-        return NextResponse.json({ message: 'Email already exists! Please login.' }, { status: 400 });
+      if (existingUser.isVerified) {
+        // If user is already verified, block registration
+        if (existingUser.email === email.toLowerCase()) {
+          return NextResponse.json({ message: 'Email already exists! Please login.' }, { status: 400 });
+        }
+        return NextResponse.json({ message: 'Phone number is already registered!' }, { status: 400 });
+      } else {
+        // 🌟 If user exists but is NOT verified yet, update their data and send a new OTP
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            name,
+            password: hashedPassword,
+            phone: phone.trim(),
+            verificationToken: otp,
+            tokenExpiry: tokenExpiry
+          }
+        });
       }
-      return NextResponse.json({ message: 'Phone number is already registered!' }, { status: 400 });
+    } else {
+      // 🌟 Completely new user creation (isVerified defaults to false)
+      await prisma.user.create({
+        data: {
+          name,
+          email: email.toLowerCase(),
+          password: hashedPassword,
+          phone: phone.trim(),
+          role: 'USER',
+          isVerified: false,
+          verificationToken: otp,
+          tokenExpiry: tokenExpiry
+        }
+      });
     }
 
-    // Hash Password & Save User permanent
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email: email.toLowerCase(),
-        password: hashedPassword,
-        phone: phone.trim(),
-        role: 'USER'
-      }
+    // 🌟 Send OTP Email via Resend
+    // Note: Change 'onboarding@resend.dev' to your verified domain email (e.g., info@yourdomain.com) when deploying.
+    await resend.emails.send({
+      from: 'Twinkles <onboarding@resend.dev>', 
+      to: email.toLowerCase(),
+      subject: 'Verify your account - Twinkles',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 30px; color: #3a2e28; max-width: 500px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
+          <h2 style="font-weight: 300; font-family: Georgia, serif; text-align: center;">Welcome to Twinkles</h2>
+          <p style="font-size: 14px; text-align: center;">Hi ${name},</p>
+          <p style="font-size: 14px; text-align: center; color: #666;">Please use the following 6-digit code to verify your email address and activate your account. This code expires in 15 minutes.</p>
+          
+          <div style="background-color: #f5f3ed; padding: 20px; text-align: center; margin: 30px 0; border-radius: 4px;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #3a2e28;">${otp}</span>
+          </div>
+          
+          <p style="font-size: 12px; text-align: center; color: #999;">If you didn't request this registration, you can safely ignore this email.</p>
+        </div>
+      `
     });
 
-    const { password: _, ...userWithoutPassword } = newUser;
-
-    // Automatically log them in by setting cookie directly on signup success
-    const response = NextResponse.json(
-      { message: 'Account created successfully!', user: userWithoutPassword },
+    // 🌟 Notice: No JWT or cookies are set here anymore. User must verify OTP first.
+    return NextResponse.json(
+      { message: 'Verification code sent successfully!' },
       { status: 201 }
     );
-
-    // Dynamic import for JWT to prevent edge issues if any
-    const jwt = require('jsonwebtoken');
-    const sessionToken = jwt.sign(
-      { id: newUser.id, email: newUser.email, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    response.cookies.set({
-      name: 'twinkles_session',
-      value: sessionToken,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
-
-    return response;
 
   } catch (error) {
     console.error('SIGNUP_ROUTE_ERROR:', error);

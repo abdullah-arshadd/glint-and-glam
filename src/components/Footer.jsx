@@ -59,15 +59,11 @@ export default function Footer() {
                             Customer Care
                         </span>
                         <div className="flex flex-col space-y-3.5 text-xs font-light tracking-wider">
-                            <Link href="/shipping-returns" className="group relative w-fit mx-auto sm:mx-0 transition-opacity opacity-80 hover:opacity-100" style={{ color: '#3a2e28' }}>
+                            <Link href="/policies" className="group relative w-fit mx-auto sm:mx-0 transition-opacity opacity-80 hover:opacity-100" style={{ color: '#3a2e28' }}>
                                 Shipping & Returns
                                 <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#3a2e28] transition-all duration-300 group-hover:w-full" />
                             </Link>
-                            <Link href="/jewelry-care" className="group relative w-fit mx-auto sm:mx-0 transition-opacity opacity-80 hover:opacity-100" style={{ color: '#3a2e28' }}>
-                                Jewelry Care Guide
-                                <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#3a2e28] transition-all duration-300 group-hover:w-full" />
-                            </Link>
-                            <Link href="/privacy-policy" className="group relative w-fit mx-auto sm:mx-0 transition-opacity opacity-80 hover:opacity-100" style={{ color: '#3a2e28' }}>
+                            <Link href="/policies" className="group relative w-fit mx-auto sm:mx-0 transition-opacity opacity-80 hover:opacity-100" style={{ color: '#3a2e28' }}>
                                 Privacy Policy
                                 <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-[#3a2e28] transition-all duration-300 group-hover:w-full" />
                             </Link>

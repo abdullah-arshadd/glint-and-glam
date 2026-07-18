@@ -32,14 +32,15 @@ export async function GET() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { fullName, phone, city, address, notes, items, total, paymentMethod } = body;
+    // 🌟 Update: paymentProof yahan add kar diya hai
+    const { fullName, phone, city, address, notes, items, total, paymentMethod, paymentProof } = body;
 
     // 🛑 Guardrail 1: Validation Check
     if (!fullName || !phone || !address || !items || items.length === 0 || !paymentMethod) {
       return NextResponse.json({ error: "Required fields or payment choice missing" }, { status: 400 });
     }
 
-    // 🛑 Guardrail 2: STRICT AUTHENTICATION CHECK
+    // 🛑 Guardrail 2: OPTIONAL AUTHENTICATION (Guest Checkout Enabled)
     let loggedInUserId = null;
     try {
       const sessionRes = await fetch(`${req.nextUrl.origin}/api/auth/session`, {
@@ -54,7 +55,7 @@ export async function POST(req) {
             where: { email: sessionData.user.email }
           });
           if (dbUser) {
-            loggedInUserId = dbUser.id;
+            loggedInUserId = dbUser.id; // Agar login hai toh ID assign ho jayegi
           }
         }
       }
@@ -62,9 +63,7 @@ export async function POST(req) {
       console.error("Session fetch error:", sessionErr);
     }
 
-    if (!loggedInUserId) {
-      return NextResponse.json({ error: "Please log in first to place an order." }, { status: 401 });
-    }
+    // ❌ Yahan se strict error block hata diya hai taake Guest order pass ho sake!
 
     // 🛑 Guardrail 3: Stock Check Before Proceeding
     for (const item of items) {
@@ -93,6 +92,7 @@ export async function POST(req) {
             fullName, phone, city, address, notes: notes || "",
             totalAmount: Number(total), status: 'PENDING', userId: loggedInUserId,
             paymentMethod: 'COD', paymentStatus: 'PENDING', gatewayRefId: null,
+            paymentProof: paymentProof || null, // 🌟 Update: Screenshot DB mein save hoga
             items: {
               create: items.map((item) => ({
                 variantId: String(item.variantId || item.variant?.id || item.id),
@@ -124,6 +124,7 @@ export async function POST(req) {
             fullName, phone, city, address, notes: notes || "",
             totalAmount: Number(total), status: 'PENDING', userId: loggedInUserId,
             paymentMethod: 'BANK', paymentStatus: 'PENDING', gatewayRefId: null,
+            paymentProof: paymentProof || null, // 🌟 Update: Screenshot DB mein save hoga
             items: {
               create: items.map((item) => ({
                 variantId: String(item.variantId || item.variant?.id || item.id),

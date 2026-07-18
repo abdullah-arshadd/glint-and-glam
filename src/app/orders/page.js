@@ -1,13 +1,26 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-// FontAwesome imports (faXmarkCircle add kiya hai cancellation ke liye)
+// FontAwesome imports (ChevronLeft aur ChevronRight add kiye hain pagination arrows ke liye)
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBoxOpen, faTruckFast, faCircleCheck, faBagShopping, faArrowRight, faXmarkCircle } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faBoxOpen, 
+  faTruckFast, 
+  faCircleCheck, 
+  faBagShopping, 
+  faArrowRight, 
+  faXmarkCircle,
+  faChevronLeft,
+  faChevronRight
+} from '@fortawesome/free-solid-svg-icons';
 
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 5; // Aap isko change kar sakte hain (e.g., 5 orders per page)
 
   useEffect(() => {
     async function fetchMyOrders() {
@@ -34,6 +47,23 @@ export default function MyOrdersPage() {
       case 'DELIVERED': return 3;
       default: return 1;
     }
+  };
+
+  // Pagination Logic
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(orders.length / ordersPerPage);
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+    // Scroll to top of the list for better UX
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
@@ -71,7 +101,8 @@ export default function MyOrdersPage() {
         </div>
       ) : (
         <div className="">
-          {orders.map((order) => {
+          {/* Use currentOrders instead of orders for rendering */}
+          {currentOrders.map((order) => {
             const isCancelled = order.status === 'CANCELLED';
             const currentStep = getStepStatusIndex(order.status);
             
@@ -235,6 +266,32 @@ export default function MyOrdersPage() {
               </div>
             );
           })}
+
+          {/* Luxury Theme Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-8 mt-10 mb-6">
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className="text-[10px] uppercase tracking-widest font-bold text-[#3a2e28] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 hover:opacity-70 transition-opacity"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} /> Prev
+              </button>
+              
+              <span className="text-[10px] uppercase tracking-widest text-gray-500 font-medium">
+                Page <span className="text-[#3a2e28] font-bold">{currentPage}</span> of {totalPages}
+              </span>
+              
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="text-[10px] uppercase tracking-widest font-bold text-[#3a2e28] disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 hover:opacity-70 transition-opacity"
+              >
+                Next <FontAwesomeIcon icon={faChevronRight} />
+              </button>
+            </div>
+          )}
+
         </div>
       )}
     </div>

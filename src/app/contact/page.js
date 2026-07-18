@@ -86,7 +86,7 @@ export default function ContactPage() {
                 Get In Touch Directly
               </h2>
               <p className="text-xs font-light leading-relaxed opacity-70" style={{ color: '#3a2e28' }}>
-                Hum koshish karte hain ke aapke tamaam sawalaat ka jawab jald az jald dein. Niche diye gaye standard channels par humse rabta karein.
+                We strive to answer all your queries as quickly as possible. Please contact us through the standard channels provided below.
               </p>
             </div>
 
@@ -101,7 +101,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#3a2e28' }}>WhatsApp Helpdesk</h4>
-                  <p className="text-xs font-light mt-0.5 opacity-80" style={{ color: '#3a2e28' }}>+92 300 1234567</p>
+                  <p className="text-xs font-light mt-0.5 opacity-80" style={{ color: '#3a2e28' }}>+92 334 0657345</p>
                   <span className="text-[10px] font-medium block mt-1" style={{ color: '#3a2e28' }}>Instant Response within hours</span>
                 </div>
               </div>
@@ -113,7 +113,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#3a2e28' }}>Email Inquiries</h4>
-                  <p className="text-xs font-light mt-0.5 opacity-80" style={{ color: '#3a2e28' }}>support@twinklesofjoy.com</p>
+                  <p className="text-xs font-light mt-0.5 opacity-80" style={{ color: '#3a2e28' }}>support@glintandglam.com</p>
                   <span className="text-[10px] block mt-1 opacity-50" style={{ color: '#3a2e28' }}>Response inside 24 Business Hours</span>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export default function ContactPage() {
                 <div>
                   <h4 className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#3a2e28' }}>Operating Hours</h4>
                   <p className="text-xs font-light mt-0.5 opacity-80" style={{ color: '#3a2e28' }}>Monday to Saturday: 11:00 AM – 08:00 PM</p>
-                  <span className="text-[10px] block mt-1 opacity-50" style={{ color: '#3a2e28' }}>Boutique Customer Care timings</span>
+                  <span className="text-[10px] block mt-1 opacity-50" style={{ color: '#3a2e28' }}>Customer Care timings</span>
                 </div>
               </div>
             </div>

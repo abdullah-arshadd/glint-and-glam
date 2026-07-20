@@ -142,10 +142,9 @@ export default function CheckoutPage() {
     <div className="mt-3 bg-[#f5f3ed] p-3 rounded-md text-xs border border-[rgba(58,46,40,0.1)]">
       <p className="font-semibold mb-1.5" style={{ color: '#3a2e28' }}>Bank Account Details:</p>
       <div className="space-y-1 opacity-80" style={{ color: '#3a2e28' }}>
-        <p><span className="font-medium">Bank Name:</span> Meezan Bank</p>
-        <p><span className="font-medium">Account Title:</span> Twinkles Official</p>
-        <p><span className="font-medium">Account No:</span> 01234567891234</p>
-        <p><span className="font-medium">IBAN:</span> PK12MEZN01234567891234</p>
+        <p><span className="font-medium">Bank Name:</span> Easypaisa</p>
+        <p><span className="font-medium">Account Title:</span> Raazia Arshad</p>
+        <p><span className="font-medium">Account No:</span> 03340657345</p>
       </div>
     </div>
   );
@@ -221,7 +220,7 @@ export default function CheckoutPage() {
                       <Truck size={18} style={{ color: '#3a2e28' }} />
                       <div>
                         <p className="text-xs font-semibold" style={{ color: '#3a2e28' }}>Cash On Delivery (COD)</p>
-                        <p className="text-[10px] text-gray-500 mt-0.5">50% Advance Required</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">COD Advance Required</p>
                       </div>
                     </div>
                     <div className="w-3.5 h-3.5 rounded-full border flex items-center justify-center" style={{ borderColor: '#3a2e28' }}>
@@ -233,7 +232,7 @@ export default function CheckoutPage() {
                   {paymentMethod === 'COD' && (
                     <div className="p-4 pt-0 border-t mt-2" style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }}>
                       <p className="text-[11px] mt-4 leading-relaxed" style={{ color: '#3a2e28' }}>
-                        <span className="font-semibold text-red-600">Note:</span> According to our policy, a <strong>50% advance payment (Rs. {(grandTotal / 2).toLocaleString()})</strong> is required to process your COD order. Please transfer the amount to the following account and attach the screenshot below.
+                        <span className="font-semibold text-red-600">Note:</span> According to our policy, <strong>delivery payment</strong> is required in advance to process your COD order. Please transfer the amount to the following account and attach the screenshot below.
                       </p>
                       
                       <BankAccountInfo />

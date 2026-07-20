@@ -4,7 +4,7 @@ import { Toaster } from 'sonner';
 import { CartProvider } from "@/context/CartContext";
 
 export const metadata = {
-  title: "Twinkles of Joy | Luxury Jewellery Store",
+  title: "Glint and Glam | Luxury Jewellery Store",
   description: "Elegance in every piece",
 };
 

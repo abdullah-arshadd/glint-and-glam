@@ -1,11 +1,10 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Eye, Heart, Loader2 } from 'lucide-react';
+import { ShoppingBag, Eye } from 'lucide-react'; // Loader2 hata diya hai
 
-export default function FeaturedGrid() {
-  const [bestSellers, setBestSellers] = useState([]);
-  const [loading, setLoading] = useState(true);
+// 🌟 THE FIX: Ab yeh component data props se receive karega
+export default function FeaturedGrid({ bestSellers = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const sliderRef = useRef(null);
 
@@ -23,26 +22,6 @@ export default function FeaturedGrid() {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    async function fetchFeaturedData() {
-      try {
-        const prodRes = await fetch("/api/products?featured=true");
-        const prodData = await prodRes.json();
-          
-        const validatedProducts = Array.isArray(prodData) 
-          ? prodData 
-          : (prodData && Array.isArray(prodData.products) ? prodData.products : []);
-        
-        setBestSellers(validatedProducts);
-      } catch (error) {
-        console.error("Error loading featured layout elements:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchFeaturedData();
   }, []);
 
   // Total steps tracking for indicators
@@ -69,13 +48,8 @@ export default function FeaturedGrid() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="w-full py-32 flex justify-center items-center" style={{ backgroundColor: '#f7f2e6' }}>
-        <Loader2 className="animate-spin" style={{ color: '#3a2e28' }} size={32} />
-      </div>
-    );
-  }
+  // Agar data nahi hai toh khali screen na dikhaye
+  if (bestSellers.length === 0) return null;
 
   return (
     <section className="w-full py-20 lg:py-32 overflow-hidden" style={{ backgroundColor: '#f7f2e6' }}>
@@ -84,14 +58,14 @@ export default function FeaturedGrid() {
         {/* --- SECTION TITLE --- */}
         <div className="text-center mb-16">
           <span className="text-[10px] lg:text-xs uppercase tracking-[0.3em] text-[#3A2E28] font-semibold block mb-3">
-            Twinkles Signature
+            Glint & Glam Signature
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl text-[#2D2524] [font-family:'Cormorant_Garamond',serif] font-medium tracking-wide">
             Our Best Sellers
           </h2>
         </div>
 
-        {/* --- CAROUSEL TRACK (Fixed width sizing issue) --- */}
+        {/* --- CAROUSEL TRACK --- */}
         <div 
           ref={sliderRef}
           onScroll={handleScroll}
@@ -104,7 +78,7 @@ export default function FeaturedGrid() {
               className="group flex flex-col justify-between relative min-w-[calc(50%-8px)] lg:min-w-[calc(25%-18px)] max-w-[calc(50%-8px)] lg:max-w-[calc(25%-18px)] snap-start flex-shrink-0"
             >
               
-              {/* Image Container with precise aspect ratio */}
+              {/* Image Container */}
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F7BFB4]/5 border border-[#F7BFB4]/20 transition-all duration-300">
                 <img 
                   src={product.images?.[0]?.url || '/placeholder.jpg'} 
@@ -136,7 +110,7 @@ export default function FeaturedGrid() {
               {/* Product Info Description */}
               <div className="mt-4 text-center flex flex-col items-center">
                 <span className="text-[8px] lg:text-[9px] uppercase tracking-widest text-gray-400 mb-1">
-                  {product.category?.name || "Fine Jewelry"}
+                  {product.category?.name || "Fine Fragrance"}
                 </span>
                 <Link href={`/shop/${product.id}`} className="block w-full">
                   <h3 className="text-xs lg:text-sm text-[#2D2524] font-light tracking-wide [font-family:'Plus_Jakarta_Sans',sans-serif] hover:text-[#DB93B0] transition-colors duration-200 cursor-pointer line-clamp-1 px-1">

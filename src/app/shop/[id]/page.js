@@ -21,6 +21,15 @@ export default async function ProductDetailPage({ params }) {
     notFound();
   }
 
-  // 4. Return
-  return <ProductDetailClient product={product} />;
+  // 🌟 THE FIX: Decimal price ko plain Number mein convert karein
+  const formattedProduct = {
+    ...product,
+    variants: product.variants.map((variant) => ({
+      ...variant,
+      price: Number(variant.price) 
+    }))
+  };
+
+  // 4. Return (Ab original ki jagah formattedProduct pass karein)
+  return <ProductDetailClient product={formattedProduct} />;
 }

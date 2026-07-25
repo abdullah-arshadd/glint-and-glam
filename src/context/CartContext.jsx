@@ -9,7 +9,7 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Initial Load: Page open hote hi data fetch karo (Backend cookie khud manage karega)
+  // 1. Initial Load: Page open hote hi data fetch karo
   useEffect(() => {
     fetchCart();
   }, []);
@@ -17,7 +17,6 @@ export function CartProvider({ children }) {
   // 2. Database (API) se Cart Items lekar aana
   const fetchCart = async () => {
     try {
-      // 🚀 FIXED: URL params se sessionId hata diya, ab server direct cookie se parh lega
       const res = await fetch('/api/cart');
       if (res.ok) {
         const data = await res.json();
@@ -41,7 +40,7 @@ export function CartProvider({ children }) {
 
     const existing = cartItems.find(item => item.variantId === variantId);
     if (existing && existing.quantity >= stockAvailable) {
-      toast.error("Sorry, no more stock available for this item!");
+      toast.error(`Sorry, only ${stockAvailable} available in stock!`);
       return;
     }
 
@@ -49,7 +48,7 @@ export function CartProvider({ children }) {
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variantId, quantity: 1 }) // 🚀 FIXED: sessionId removed from payload
+        body: JSON.stringify({ variantId, quantity: 1 }) 
       });
 
       if (res.ok) {
@@ -63,8 +62,15 @@ export function CartProvider({ children }) {
     }
   };
 
-  // 4. Cart se specific item remove karna
+  // 🌟 4. OPTIMISTIC UPDATE: Cart se specific item remove karna (ZERO DELAY)
   const removeFromCart = async (cartItemId) => {
+    // Backup purani state
+    const previousCart = [...cartItems];
+
+    // Frontend par foran item delete kar do
+    setCartItems((prev) => prev.filter((item) => item.id !== cartItemId));
+    toast.success("Item removed from bag");
+
     try {
       const res = await fetch('/api/cart', {
         method: 'DELETE',
@@ -72,16 +78,16 @@ export function CartProvider({ children }) {
         body: JSON.stringify({ cartItemId })
       });
 
-      if (res.ok) {
-        setCartItems((prev) => prev.filter((item) => item.id !== cartItemId));
-        toast.success("Item removed from bag");
-      }
+      if (!res.ok) throw new Error("Backend failed to delete");
+
     } catch (error) {
-      toast.error("Failed to remove item");
+      // Agar API fail hui toh wapis item le aao
+      setCartItems(previousCart);
+      toast.error("Failed to remove item. It has been restored.");
     }
   };
 
-  // 5. Quantity kam ya zyada karna (Plus/Minus)
+  // 🌟 5. OPTIMISTIC UPDATE: Quantity kam ya zyada karna (Plus/Minus) (ZERO DELAY)
   const updateQuantity = async (cartItemId, amount) => {
     const item = cartItems.find((i) => i.id === cartItemId);
     if (!item) return;
@@ -89,12 +95,22 @@ export function CartProvider({ children }) {
     const newQty = item.quantity + amount;
     if (newQty < 1) return;
 
+    // 🛑 STOCK CHECK (Guardrail): Agar user limit se zyada barhaye toh error do
     if (amount > 0 && newQty > item.variant.stock) {
-      toast.error("Cannot exceed available stock!");
-      return;
+      toast.error(`Limit Reached! Only ${item.variant.stock} left in stock.`);
+      return; // Code yahin ruk jayega, quantity nahi barhegi
     }
 
+    // Backup purani state
+    const previousCart = [...cartItems];
+
+    // Frontend par foran quantity update kardo
+    setCartItems(prev => prev.map(i => 
+      i.id === cartItemId ? { ...i, quantity: newQty } : i
+    ));
+
     try {
+      // Background mein chup chap API call bhejo
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,21 +118,25 @@ export function CartProvider({ children }) {
           variantId: item.variantId, 
           quantity: amount, 
           isUpdate: true 
-        }) // 🚀 FIXED: sessionId removed
+        })
       });
 
-      if (res.ok) {
-        await fetchCart();
-      }
+      if (!res.ok) throw new Error("API Update Failed");
+      
+      // ✅ Note: Yahan pehle 'await fetchCart()' tha jis ki wajah se delay aata tha. 
+      // Ab humne wo hata diya hai kyunke frontend pehle hi update ho chuka hai!
+
     } catch (error) {
       console.error("Quantity update nahi ho saki:", error);
+      // Agar net disconnect ho jaye ya API phat jaye, quantity wapis purani wali kardo
+      setCartItems(previousCart);
+      toast.error("Network error, quantity reverted.");
     }
   };
 
   // 6. Checkout ke baad puri cart khali karna
   const clearCart = async () => {
     try {
-      // 🚀 FIXED: Query param ki zaroorat nahi
       const res = await fetch('/api/cart', { method: 'DELETE' });
       if (res.ok) {
         setCartItems([]);

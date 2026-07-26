@@ -6,28 +6,28 @@ import { motion } from 'framer-motion';
 const STATIC_REVIEWS = [
   {
     id: 1,
-    name: "MAHA",
-    comment: "Honestly didn't expect this good quality at this price 😍 sab kuch bilkul same tha as shown, highly recommended"
+    name: "Zainab Arshad",
+    comment: "Thankyou so much for amazing products 😍😍 AMAZING QUALITY...LOVEDDD ITTT🫶🏻🫶🏻🫶🏻 And thank you for the free gift 🥹🥹🥹"
   },
   {
     id: 2,
-    name: "AYESHA",
-    comment: "Bohot pyari packing thi aur jewelry ki quality toh 10/10 hai. Same jaisa page par dikhaya tha waisa hi real mein mila."
+    name: "strvvlight",
+    comment: "Assalamualaikum dear! I received my parcel and I love it 💓 both the size and quality is amazing and Thanku again for your cooperation and for gift too, will order again InshaAllah"
   },
   {
     id: 3,
-    name: "SANA",
-    comment: "In love with the minimalist design! The shine is amazing and it's perfect for daily wear. Will definitely order again."
+    name: "Jasmine",
+    comment: "I loved studs.They are so pretty. Satisfied with the quality and the best part is they have the best price.Really glad with this purchase."
   },
   {
     id: 4,
-    name: "ZAINAB",
-    comment: "Delivery thori late thi par products were so gorgeous and cute, completely worth the wait! Customer support was very cooperative."
+    name: "Sawera",
+    comment: "Assalamualaikum dear...got the parcel and am amazed with the quality of the things... Jazakallah dear...stay always blessed"
   },
   {
     id: 5,
-    name: "MAHAM",
-    comment: "Mene apni sister ke liye gift buy kiya tha, unko bohot pasand aaya. The packaging gives a very premium feel."
+    name: "Urooj",
+    comment: "Absolutely loved this.❤️...the perfect blend of jewelry for me and colorful accessories for my little one.. beautiful variety and great quality"
   }
 ];
 
@@ -61,7 +61,7 @@ export default function ReviewTextSlider() {
 
     const slider = sliderRef.current;
     const currentScroll = slider.scrollLeft;
-    
+
     // Mobile screen par exact view width nikalne ke liye slider.clientWidth best hai
     const stepWidth = window.innerWidth < 640 ? slider.clientWidth : (slider.scrollWidth / (totalOriginalItems * 2)) * itemsPerPage;
     let targetScroll = currentScroll + stepWidth;
@@ -114,20 +114,20 @@ export default function ReviewTextSlider() {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 30, scale: 0.97 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
+    visible: {
+      opacity: 1,
+      y: 0,
       scale: 1,
-      transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } 
+      transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] }
     },
   };
 
   return (
     <section className="w-full pb-20 overflow-hidden" style={{ backgroundColor: '#f7f2e6' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* --- CENTERED HEADER TEXT WITH SCROLL MOTION --- */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
@@ -143,7 +143,7 @@ export default function ReviewTextSlider() {
         </motion.div>
 
         {/* --- TEXT CARDS OFFSET CAROUSEL TRACK --- */}
-        <motion.div 
+        <motion.div
           ref={sliderRef}
           variants={containerVariants}
           initial="hidden"
@@ -153,24 +153,24 @@ export default function ReviewTextSlider() {
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {duplicatedReviews.map((review, index) => (
-            <motion.div 
-              key={`${review.id}-${index}`} 
+            <motion.div
+              key={`${review.id}-${index}`}
               variants={itemVariants}
               className="flex-shrink-0 flex justify-center items-center w-full sm:w-1/2 lg:w-1/3 px-4"
             >
               {/* 🔑 RETRO SHADOW CARD DESIGN */}
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.3 }}
                 className="relative w-full max-w-[320px] h-[240px] group mb-2 mx-auto cursor-pointer"
               >
-                
+
                 {/* Back Solid Accent Block */}
                 <div className="absolute inset-0 translate-x-2 translate-y-2 bg-[#4C4039] border border-[#3a2e28] transition-transform duration-300 group-hover:translate-x-3 group-hover:translate-y-3" />
-                
+
                 {/* Front Text Canvas */}
                 <div className="absolute inset-0 bg-white border border-[#3a2e28] p-6 flex flex-col justify-between shadow-sm transition-transform duration-300">
-                  
+
                   {/* Top: 5 Stars */}
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
@@ -196,17 +196,17 @@ export default function ReviewTextSlider() {
         </motion.div>
 
         {/* --- CENTERED CONTROLS (ARROWS & DOTS) --- */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
           className="flex flex-col items-center justify-center gap-6 mt-6"
         >
-          
+
           {/* Retro Navigation Arrows */}
           <div className="flex items-center gap-4">
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
               onClick={handlePrev}
@@ -215,7 +215,7 @@ export default function ReviewTextSlider() {
             >
               <ChevronLeft size={18} strokeWidth={2} />
             </motion.button>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
               onClick={handleNext}
@@ -242,11 +242,10 @@ export default function ReviewTextSlider() {
                       setCurrentIndex(idx);
                     }
                   }}
-                  className={`h-[3px] transition-all duration-500 rounded-full cursor-pointer ${
-                    currentIndex === idx 
-                      ? 'w-8 bg-[#4C4039]' 
+                  className={`h-[3px] transition-all duration-500 rounded-full cursor-pointer ${currentIndex === idx
+                      ? 'w-8 bg-[#4C4039]'
                       : 'w-2 bg-[#4C4039]/25 hover:bg-[#3a2e28]/45'
-                  }`}
+                    }`}
                   aria-label={`Go to slide ${idx + 1}`}
                 />
               ))}

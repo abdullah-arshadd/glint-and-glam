@@ -7,6 +7,25 @@ import { usePathname, useRouter } from 'next/navigation';
 import { ShoppingBag, Search, Menu, X, Plus, Minus, Phone, Mail, User, ChevronRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
+// 🌟 Custom Lightweight Instagram SVG Component
+const InstagramIcon = ({ size = 18, className = "" }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="1.5" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
+
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
@@ -25,6 +44,8 @@ export default function Navbar() {
     const [openSubCategories, setOpenSubCategories] = useState({});
 
     const { cartCount } = useCart();
+
+    const INSTAGRAM_URL = "https://www.instagram.com/glintandglam.pk?igsh=dXdpMjU0ZnN1bXc1";
 
     if (pathname?.startsWith('/admin')) {
         return null;
@@ -137,13 +158,25 @@ export default function Navbar() {
                         </div>
 
                         {/* Right Interactive Nodes */}
-                        <div className="flex items-center space-x-3 sm:space-x-6 z-50">
+                        <div className="flex items-center space-x-3 sm:space-x-5 z-50">
                             <SearchBar />
 
                             <div className="user-dropdown-wrapper inline-flex items-center">
                                 <UserDropdown />
                             </div>
 
+                            {/* 🌟 INSTAGRAM LINK NODE */}
+                            <a 
+                                href={INSTAGRAM_URL} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="nav-icon-item p-1.5 block cursor-pointer"
+                                aria-label="Visit Instagram Page"
+                            >
+                                <InstagramIcon size={18} />
+                            </a>
+
+                            {/* CART NODE */}
                             <Link href="/cart" className="nav-icon-item relative p-1.5 block">
                                 <ShoppingBag size={18} strokeWidth={1.5} />
                                 {cartCount > 0 && (
@@ -214,7 +247,7 @@ export default function Navbar() {
                             </div>
                         </div>
 
-                        {/* CATALOG NEST LAYER (COMPLETELY DYNAMIC WITH THE SHOP ARCHITECTURE) */}
+                        {/* CATALOG NEST LAYER */}
                         <div className="border-b border-[#3a2e28]/10 pb-3">
                             <button 
                                 onClick={() => setIsCatalogOpen(!isCatalogOpen)}
@@ -309,17 +342,23 @@ export default function Navbar() {
                     {/* BASE PANEL FOOTER STACK */}
                     <div className="px-5 py-5 border-t border-[#3a2e28]/10 space-y-3.5 bg-black/[0.01] [font-family:'Plus_Jakarta_Sans',sans-serif] tracking-normal normal-case">
                         <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#3a2e28]/50">
-                            Contact
+                            Contact & Socials
                         </div>
                         
-                        <a href="tel:+923001202706" className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black">
+                        <a href="tel:+923340657345" className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black">
                             <Phone className="w-3.5 h-3.5 opacity-70" />
-                            <span>+92 300 1202706</span>
+                            <span>+92 334 0657345</span>
                         </a>
 
-                        <a href="mailto:bloomstone.pk@gmail.com" className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black break-all">
+                        <a href="mailto:glintandglam.pk@gmail.com" className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black break-all">
                             <Mail className="w-3.5 h-3.5 opacity-70" />
-                            <span>bloomstone.pk@gmail.com</span>
+                            <span>glintandglam.pk@gmail.com</span>
+                        </a>
+
+                        {/* 🌟 INSTAGRAM MOBILE LINK */}
+                        <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black">
+                            <InstagramIcon size={14} className="opacity-70" />
+                            <span>@glintandglam.pk</span>
                         </a>
 
                         <div className="pt-2.5 border-t border-[#3a2e28]/10">

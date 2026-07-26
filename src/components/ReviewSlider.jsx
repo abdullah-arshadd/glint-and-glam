@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const STATIC_REVIEWS = [
   {
@@ -100,36 +101,72 @@ export default function ReviewTextSlider() {
     setCurrentIndex((prev) => (prev === 0 ? totalDots - 1 : prev - 1));
   };
 
+  // Animation Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.97 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } 
+    },
+  };
+
   return (
     <section className="w-full pb-20 overflow-hidden" style={{ backgroundColor: '#f7f2e6' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* --- CENTERED HEADER TEXT --- */}
-        <div className="text-center mb-16">
+        {/* --- CENTERED HEADER TEXT WITH SCROLL MOTION --- */}
+        <motion.div 
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center mb-16"
+        >
           <span className="text-[10px] lg:text-xs uppercase tracking-[0.3em] text-[#3A2E28] font-semibold block mb-3">
             Real Chats, Real Love
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl text-[#2D2524] [font-family:'Cormorant_Garamond',serif] font-medium tracking-wide">
             Our Happy <span className="italic">Customers</span>
           </h2>
-        </div>
+        </motion.div>
 
         {/* --- TEXT CARDS OFFSET CAROUSEL TRACK --- */}
-        <div 
+        <motion.div 
           ref={sliderRef}
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
           className="flex overflow-x-auto scrollbar-none pb-10 pt-2 w-full"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {duplicatedReviews.map((review, index) => (
-            <div 
+            <motion.div 
               key={`${review.id}-${index}`} 
+              variants={itemVariants}
               className="flex-shrink-0 flex justify-center items-center w-full sm:w-1/2 lg:w-1/3 px-4"
             >
               {/* 🔑 RETRO SHADOW CARD DESIGN */}
-              <div className="relative w-full max-w-[320px] h-[240px] group mb-2 mx-auto">
+              <motion.div 
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3 }}
+                className="relative w-full max-w-[320px] h-[240px] group mb-2 mx-auto cursor-pointer"
+              >
                 
                 {/* Back Solid Accent Block */}
-                <div className="absolute inset-0 translate-x-2 translate-y-2 bg-[#4C4039] border border-[#3a2e28] transition-transform duration-300 group-hover:translate-x-2 group-hover:translate-y-2" />
+                <div className="absolute inset-0 translate-x-2 translate-y-2 bg-[#4C4039] border border-[#3a2e28] transition-transform duration-300 group-hover:translate-x-3 group-hover:translate-y-3" />
                 
                 {/* Front Text Canvas */}
                 <div className="absolute inset-0 bg-white border border-[#3a2e28] p-6 flex flex-col justify-between shadow-sm transition-transform duration-300">
@@ -153,30 +190,40 @@ export default function ReviewTextSlider() {
 
                 </div>
 
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* --- CENTERED CONTROLS (ARROWS & DOTS) --- */}
-        <div className="flex flex-col items-center justify-center gap-6 mt-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="flex flex-col items-center justify-center gap-6 mt-6"
+        >
           
           {/* Retro Navigation Arrows */}
           <div className="flex items-center gap-4">
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.92 }}
               onClick={handlePrev}
-              className="relative p-3 bg-white border border-[#3a2e28] text-[#3a2e28] transition-all duration-300 active:translate-x-[2px] active:translate-y-[2px] cursor-pointer"
+              className="relative p-3 bg-white border border-[#3a2e28] text-[#3a2e28] transition-all duration-300 cursor-pointer"
               style={{ boxShadow: '3px 3px 0px 0px #4C4039' }}
             >
               <ChevronLeft size={18} strokeWidth={2} />
-            </button>
-            <button 
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.92 }}
               onClick={handleNext}
-              className="relative p-3 bg-white border border-[#3a2e28] text-[#3a2e28] transition-all duration-300 active:translate-x-[2px] active:translate-y-[2px] cursor-pointer"
+              className="relative p-3 bg-white border border-[#3a2e28] text-[#3a2e28] transition-all duration-300 cursor-pointer"
               style={{ boxShadow: '3px 3px 0px 0px #4C4039' }}
             >
               <ChevronRight size={18} strokeWidth={2} />
-            </button>
+            </motion.button>
           </div>
 
           {/* Timeline Indicators */}
@@ -206,7 +253,7 @@ export default function ReviewTextSlider() {
             </div>
           )}
 
-        </div>
+        </motion.div>
 
       </div>
     </section>

@@ -67,28 +67,31 @@ export async function POST(request) {
       });
     }
 
-    // 🌟 Send OTP Email via Resend
-    // Note: Change 'onboarding@resend.dev' to your verified domain email (e.g., info@yourdomain.com) when deploying.
-    await resend.emails.send({
-      from: 'Twinkles <onboarding@resend.dev>', 
+    // 🌟 Send OTP Email via Resend using Live Verified Domain
+    const { error: resendError } = await resend.emails.send({
+      from: 'Glint & Glam <verify@glintandglam.pk>', 
       to: email.toLowerCase(),
-      subject: 'Verify your account - Twinkles',
+      subject: 'Verify your account - Glint & Glam',
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 30px; color: #3a2e28; max-width: 500px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px;">
-          <h2 style="font-weight: 300; font-family: Georgia, serif; text-align: center;">Welcome to Twinkles</h2>
-          <p style="font-size: 14px; text-align: center;">Hi ${name},</p>
-          <p style="font-size: 14px; text-align: center; color: #666;">Please use the following 6-digit code to verify your email address and activate your account. This code expires in 15 minutes.</p>
+        <div style="font-family: Arial, sans-serif; padding: 30px; color: #3a2e28; max-width: 500px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; background-color: #ffffff;">
+          <h2 style="font-weight: 300; font-family: Georgia, serif; text-align: center; color: #3a2e28; margin-bottom: 20px;">Welcome to Glint & Glam</h2>
+          <p style="font-size: 14px; text-align: center; color: #3a2e28;">Hi ${name},</p>
+          <p style="font-size: 14px; text-align: center; color: #666666; line-height: 1.5;">Please use the following 6-digit code to verify your email address and activate your account. This code expires in 15 minutes.</p>
           
-          <div style="background-color: #f5f3ed; padding: 20px; text-align: center; margin: 30px 0; border-radius: 4px;">
+          <div style="background-color: #f5f3ed; padding: 20px; text-align: center; margin: 30px 0; border-radius: 6px; border: 1px solid rgba(58, 46, 40, 0.1);">
             <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #3a2e28;">${otp}</span>
           </div>
           
-          <p style="font-size: 12px; text-align: center; color: #999;">If you didn't request this registration, you can safely ignore this email.</p>
+          <p style="font-size: 12px; text-align: center; color: #999999;">If you didn't request this registration, you can safely ignore this email.</p>
         </div>
       `
     });
 
-    // 🌟 Notice: No JWT or cookies are set here anymore. User must verify OTP first.
+    if (resendError) {
+      console.error("Resend Sending Error:", resendError);
+      return NextResponse.json({ message: 'Failed to send verification email', error: resendError }, { status: 500 });
+    }
+
     return NextResponse.json(
       { message: 'Verification code sent successfully!' },
       { status: 201 }

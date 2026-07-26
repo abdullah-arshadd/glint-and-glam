@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext'; 
 import { toast } from 'sonner'; 
 
@@ -11,16 +11,31 @@ export default function ProductDetailClient({ product }) {
   const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || { id: 'default', price: 0, size: 'N/A', stock: 0 });
   const [selectedImage, setSelectedImage] = useState(product.images?.[0]?.url || "/placeholder.jpg");
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Loading state for instant button feedback
+  const [isAdding, setIsAdding] = useState(false);
 
   // Stock logic
   const isOutOfStock = selectedVariant.stock <= 0;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (isOutOfStock) {
       toast.error("Sorry, this item is currently out of stock!");
       return;
     }
-    addToCart(selectedVariant.id, selectedVariant.stock);
+    
+    // 1. Asal loading state shuru (Button ab "Adding..." dikhayega)
+    setIsAdding(true);
+    
+    try {
+      // 2. Context function ko await karein (Jab tak asal mein add nahi hota, yeh wait karega)
+      await addToCart(selectedVariant.id, selectedVariant.stock);
+    } catch (error) {
+      console.error("Cart error:", error);
+    } finally {
+      // 3. Data add hote hi (chahe success ho ya fail) button foran normal ho jayega
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -78,7 +93,6 @@ export default function ProductDetailClient({ product }) {
                     Out of Stock
                   </span>
                 ) : selectedVariant.stock <= 5 ? (
-                  // 🔑 FIXED: Bumper text size, added vertical padding (px-3 py-2)
                   <span className="text-xs text-orange-800 font-medium italic bg-orange-50/80 border border-orange-200 px-3 py-2">
                     Only {selectedVariant.stock} left in stock!
                   </span>
@@ -133,16 +147,23 @@ export default function ProductDetailClient({ product }) {
                 onClick={handleAddToCart}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                disabled={isOutOfStock}
-                className="w-full py-4 uppercase tracking-[0.15em] text-xs font-semibold shadow-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                disabled={isOutOfStock || isAdding} 
+                className="w-full py-4 uppercase tracking-[0.15em] text-xs font-semibold shadow-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer disabled:bg-[#3a2e28]/80 disabled:cursor-not-allowed"
                 style={{
-                  // 🔑 FIXED: Kept the primary primary color (DB93B0) as specified, black tint removed
                   backgroundColor: isOutOfStock ? '#d1d5db' : (isHovered ? '#bd977a' : '#3a2e28'), 
                   color: '#ffffff'
                 }}
               >
-                <ShoppingBag size={13} /> 
-                {isOutOfStock ? "Out of Stock" : "Add To Shopping Bag"}
+                {isAdding ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={15} className="animate-spin" /> Adding...
+                  </span>
+                ) : (
+                  <>
+                    <ShoppingBag size={13} /> 
+                    {isOutOfStock ? "Out of Stock" : "Add To Shopping Bag"}
+                  </>
+                )}
               </button>
             </div>
 

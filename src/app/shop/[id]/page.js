@@ -12,7 +12,7 @@ export default async function ProductDetailPage({ params }) {
     include: { 
       variants: true,
       images: true,
-      category: true // <--- Yeh zaroori hai taake category details bhi mil sakein
+      category: true // Category details ke liye zaroori hai
     }
   });
 
@@ -21,7 +21,7 @@ export default async function ProductDetailPage({ params }) {
     notFound();
   }
 
-  // 🌟 THE FIX: Decimal price ko plain Number mein convert karein
+  // 🌟 Decimal price ko plain Number mein convert karein
   const formattedProduct = {
     ...product,
     variants: product.variants.map((variant) => ({
@@ -30,6 +30,6 @@ export default async function ProductDetailPage({ params }) {
     }))
   };
 
-  // 4. Return (Ab original ki jagah formattedProduct pass karein)
-  return <ProductDetailClient product={formattedProduct} />;
+  // 4. Return (initialProduct pass karein taake SWR pehli dafa instant render kare)
+  return <ProductDetailClient productId={id} initialProduct={formattedProduct} />;
 }

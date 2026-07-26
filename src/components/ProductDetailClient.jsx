@@ -1,19 +1,59 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext'; 
 import { toast } from 'sonner'; 
+import useSWR from 'swr';
 
-export default function ProductDetailClient({ product }) {
+// 🌟 SWR Fetcher Utility Function
+const fetcher = (url) => fetch(url).then((res) => res.json());
+
+export default function ProductDetailClient({ productId, initialProduct }) {
   const { addToCart } = useCart();
-  
-  // Safe defaults
-  const [selectedVariant, setSelectedVariant] = useState(product.variants?.[0] || { id: 'default', price: 0, size: 'N/A', stock: 0 });
-  const [selectedImage, setSelectedImage] = useState(product.images?.[0]?.url || "/placeholder.jpg");
+
+  // 🌟 SWR Memory-Caching Layer (Instant Re-visit Load)
+  const { data: swrData } = useSWR(
+    productId ? `/api/products/${productId}` : null,
+    fetcher,
+    {
+      fallbackData: initialProduct, // Pehla render Server Props se fast hoga
+      revalidateOnFocus: false,     // Unnecessary tab focus fetches disabled
+      dedupingInterval: 60000,      // 1 minute active memory cache
+    }
+  );
+
+  // Fallback to SWR cached data or original server props
+  const product = swrData?.product || swrData || initialProduct;
+
+  // States
+  const [selectedVariant, setSelectedVariant] = useState(
+    product?.variants?.[0] || { id: 'default', price: 0, size: 'N/A', stock: 0 }
+  );
+  const [selectedImage, setSelectedImage] = useState(
+    product?.images?.[0]?.url || "/placeholder.jpg"
+  );
   const [isHovered, setIsHovered] = useState(false);
-  
-  // Loading state for instant button feedback
   const [isAdding, setIsAdding] = useState(false);
+
+  // Sync states if cached product updates dynamically
+  useEffect(() => {
+    if (product) {
+      if (product.variants?.length > 0 && selectedVariant.id === 'default') {
+        setSelectedVariant(product.variants[0]);
+      }
+      if (product.images?.length > 0 && selectedImage === "/placeholder.jpg") {
+        setSelectedImage(product.images[0].url);
+      }
+    }
+  }, [product, selectedVariant.id, selectedImage]);
+
+  if (!product) {
+    return (
+      <main className="min-h-screen py-16 text-center flex items-center justify-center" style={{ backgroundColor: '#f5f3ed', color: '#3a2e28' }}>
+        <p className="text-sm font-medium tracking-wide">Product details not available.</p>
+      </main>
+    );
+  }
 
   // Stock logic
   const isOutOfStock = selectedVariant.stock <= 0;
@@ -24,16 +64,16 @@ export default function ProductDetailClient({ product }) {
       return;
     }
     
-    // 1. Asal loading state shuru (Button ab "Adding..." dikhayega)
+    // Asal loading state shuru
     setIsAdding(true);
     
     try {
-      // 2. Context function ko await karein (Jab tak asal mein add nahi hota, yeh wait karega)
+      // Context function call
       await addToCart(selectedVariant.id, selectedVariant.stock);
     } catch (error) {
       console.error("Cart error:", error);
     } finally {
-      // 3. Data add hote hi (chahe success ho ya fail) button foran normal ho jayega
+      // Complete hote hi button reset
       setIsAdding(false);
     }
   };

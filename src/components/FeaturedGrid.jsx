@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Eye, Heart, Loader2 } from 'lucide-react';
+import { ShoppingBag, Eye, Loader2 } from 'lucide-react';
 
 export default function FeaturedGrid() {
   const [bestSellers, setBestSellers] = useState([]);
@@ -91,7 +91,7 @@ export default function FeaturedGrid() {
           </h2>
         </div>
 
-        {/* --- CAROUSEL TRACK (Fixed width sizing issue) --- */}
+        {/* --- CAROUSEL TRACK --- */}
         <div 
           ref={sliderRef}
           onScroll={handleScroll}
@@ -106,15 +106,19 @@ export default function FeaturedGrid() {
               
               {/* Image Container with precise aspect ratio */}
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F7BFB4]/5 border border-[#F7BFB4]/20 transition-all duration-300">
-                <img 
-                  src={product.images?.[0]?.url || '/placeholder.jpg'} 
-                  alt={product.name}
-                  className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                />
+                
+                {/* 🌟 FIX: Tasveer ko Link bana diya gaya hai taake mobile par tap karte hi page khul jaye */}
+                <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
+                  <img 
+                    src={product.images?.[0]?.url || '/placeholder.jpg'} 
+                    alt={product.name}
+                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                  />
+                </Link>
 
-                {/* Hover Glassmorphic Effect Panel */}
-                <div className="absolute inset-0 bg-white/40 backdrop-blur-xs flex flex-col items-center justify-center gap-4 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="flex items-center gap-2">
+                {/* Hover Glassmorphic Effect Panel (Desktop Only) */}
+                <div className="absolute inset-0 pointer-events-none bg-white/40 backdrop-blur-xs flex flex-col items-center justify-center gap-4 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 lg:flex hidden">
+                  <div className="flex items-center gap-2 pointer-events-auto">
                     <Link 
                       href={`/shop/${product.id}`}
                       className="bg-white p-2.5 shadow-xs hover:bg-[#f7f2e6] text-[#2D2524] transition-colors duration-300 rounded-full cursor-pointer flex items-center justify-center"
@@ -125,7 +129,7 @@ export default function FeaturedGrid() {
                   
                   <Link 
                     href={`/shop/${product.id}`}
-                    className="w-full bg-[#3a2e28] text-white py-2.5 uppercase tracking-widest text-[9px] font-semibold hover:bg-[#3a2f29]/90 transition-colors duration-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                    className="w-full bg-[#3a2e28] text-white py-2.5 uppercase tracking-widest text-[9px] font-semibold hover:bg-[#3a2f29]/90 transition-colors duration-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer pointer-events-auto"
                   >
                     <ShoppingBag size={12} />
                     View Product

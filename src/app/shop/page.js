@@ -310,7 +310,7 @@ function ShopContent() {
             </div>
           )}
 
-          {/* 🌟 REPLACED: Active Items Count & Sort Dropdown */}
+          {/* 🌟 Active Items Count & Sort Dropdown */}
           <div className="flex items-center justify-between w-full mt-4 pt-4" style={{ borderTop: '1px solid rgba(58, 46, 40, 0.08)' }}>
             
             {/* Left side: Item Count */}
@@ -349,21 +349,25 @@ function ShopContent() {
           <ShopSkeletonGrid />
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-12">
-            {/* 🌟 UPDATED: Mapping sortedProducts instead of filteredProducts */}
             {sortedProducts?.map((product) => (
               <div key={product.id} className="group flex flex-col relative">
                 
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
-                  <img 
-                    src={product.images?.[0]?.url || '/placeholder.jpg'} 
-                    alt={product.name} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103" 
-                  />
                   
-                  <div className="absolute inset-0 bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {/* 🌟 FIX: Image is now a Link for Mobile tapping */}
+                  <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
+                    <img 
+                      src={product.images?.[0]?.url || '/placeholder.jpg'} 
+                      alt={product.name} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103" 
+                    />
+                  </Link>
+                  
+                  {/* Hover Panel - hidden on mobile, pointer-events fixed */}
+                  <div className="absolute inset-0 pointer-events-none bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:flex">
                     <Link 
                       href={`/shop/${product.id}`} 
-                      className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity rounded-none"
+                      className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity rounded-none pointer-events-auto"
                       style={{ backgroundColor: '#3a2e28' }}
                     >
                       <ShoppingBag size={12} /> View Item
@@ -375,9 +379,14 @@ function ShopContent() {
                   <span className="text-[8px] uppercase tracking-widest opacity-60 font-medium" style={{ color: '#3a2e28' }}>
                     {allCategoriesFlat.find(c => c.id === product.categoryId)?.name || "Fine Jewelry"}
                   </span>
-                  <h3 className="text-[11px] lg:text-xs font-light tracking-wide mt-1" style={{ color: '#3a2e28' }}>
-                    {product.name}
-                  </h3>
+                  
+                  {/* 🌟 FIX: Title is now also a clickable Link */}
+                  <Link href={`/shop/${product.id}`} className="block cursor-pointer">
+                    <h3 className="text-[11px] lg:text-xs font-light tracking-wide mt-1 hover:text-[#DB93B0] transition-colors duration-200 line-clamp-1" style={{ color: '#3a2e28' }}>
+                      {product.name}
+                    </h3>
+                  </Link>
+                  
                   <p className="text-xs lg:text-sm font-semibold mt-1" style={{ color: '#3a2e28' }}>
                     Rs. {product.variants?.length > 0 ? Number(product.variants[0].price).toLocaleString() : "N/A"}
                   </p>

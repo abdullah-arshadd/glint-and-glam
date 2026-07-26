@@ -2,6 +2,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { Toaster } from 'sonner';
 import { CartProvider } from "@/context/CartContext";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata = {
   title: "Glint and Glam | Luxury Jewellery Store",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
           <Toaster position="bottom-right" richColors />
           <Navbar />
           {children}
+          <SpeedInsights />
         </CartProvider>
       </body>
     </html>

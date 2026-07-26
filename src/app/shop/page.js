@@ -2,20 +2,20 @@
 import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { SlidersHorizontal, ShoppingBag, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, ShoppingBag, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import useSWR from 'swr';
 
 // 🌟 SWR Fetcher Utility Function
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
-// 🌟 LUXURY SKELETON LOADERS: Flat structural layout matching the theme guidelines
+// 🌟 ITEMS PER PAGE CONFIGURATION
+const ITEMS_PER_PAGE = 12;
+
+// 🌟 LUXURY SKELETON LOADERS
 function SkeletonCard() {
   return (
     <div className="w-full space-y-4 animate-pulse">
-      {/* Product Image Box Placeholder */}
       <div className="w-full aspect-[4/5] bg-[#3a2e28]/5 rounded-none" />
-      
-      {/* Product Info Lines Placeholder */}
       <div className="space-y-2 flex flex-col items-center pt-1">
         <div className="h-2 bg-[#3a2e28]/10 w-1/4 rounded-none" />
         <div className="h-2.5 bg-[#3a2e28]/10 w-2/3 rounded-none" />
@@ -50,15 +50,18 @@ function ShopContent() {
   // Sorting State
   const [sortOption, setSortOption] = useState('default');
 
-  // 🌟 SWR DATA CACHING PIPELINE (Instant back-navigation support)
+  // 🌟 Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // 🌟 SWR DATA CACHING PIPELINE
   const { data: catData, isLoading: isCatLoading } = useSWR("/api/categories", fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 60000, // 1 minute memory cache
+    dedupingInterval: 60000,
   });
 
   const { data: prodData, isLoading: isProdLoading } = useSWR("/api/products", fetcher, {
     revalidateOnFocus: false,
-    dedupingInterval: 60000, // 1 minute memory cache
+    dedupingInterval: 60000,
   });
 
   // Validated Collections
@@ -90,7 +93,6 @@ function ShopContent() {
     return flatten(categories);
   }, [categories]);
 
-  // Combined Loading state (True only when initially fetching empty cache)
   const loading = (isCatLoading && categories.length === 0) || (isProdLoading && products.length === 0);
 
   // 🔑 URL Dynamic Sync Pipeline
@@ -121,6 +123,11 @@ function ShopContent() {
       setSelectedChild('');
     }
   }, [categoryFromUrl, allCategoriesFlat]);
+
+  // 🌟 RESET PAGINATION ON FILTER / SORT CHANGE
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMain, selectedSub, selectedChild, sortOption]);
 
   // --- Navigation & State Mutators ---
   const handleMainClick = (id) => {
@@ -167,7 +174,7 @@ function ShopContent() {
     return validCategoryScopeIds.includes(p.categoryId);
   });
 
-  // STEP 2: Sort the filtered products based on the selected option
+  // STEP 2: Sort the filtered products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortOption === 'price-asc') {
       const priceA = a.variants?.length > 0 ? Number(a.variants[0].price) : 0;
@@ -185,8 +192,22 @@ function ShopContent() {
     if (sortOption === 'name-desc') {
       return b.name.localeCompare(a.name);
     }
-    return 0; // Default order
+    return 0;
   });
+
+  // 🌟 STEP 3: PAGINATION SLICING LOGIC
+  const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE) || 1;
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [sortedProducts, currentPage]);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 150, behavior: 'smooth' });
+    }
+  };
 
   const mainCategories = categories.filter(c => !c.parentId);
   const activeMainObj = mainCategories.find(c => c.id === selectedMain);
@@ -310,7 +331,7 @@ function ShopContent() {
             
             {/* Left side: Item Count */}
             <div className="text-[10px] uppercase tracking-widest opacity-70 flex items-center gap-1 shrink-0" style={{ color: '#3a2e28' }}>
-              {sortedProducts?.length || 0} Items
+              Showing {sortedProducts.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length)} of {sortedProducts.length} Items
             </div>
             
             {/* Right side: Functional Sort Dropdown */}
@@ -330,7 +351,6 @@ function ShopContent() {
                 <option value="name-desc">Alphabetically: Z-A</option>
               </select>
               
-              {/* Custom dropdown arrow for seamless luxury UI */}
               <div className="absolute right-0 pointer-events-none opacity-70 z-0">
                 <ChevronDown size={12} />
               </div>
@@ -343,53 +363,92 @@ function ShopContent() {
         {loading ? (
           <ShopSkeletonGrid />
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-12">
-            {sortedProducts?.map((product) => (
-              <div key={product.id} className="group flex flex-col relative">
-                
-                <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-12">
+              {paginatedProducts?.map((product) => (
+                <div key={product.id} className="group flex flex-col relative">
                   
-                  {/* Image is now a Link for Mobile tapping */}
-                  <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
-                    <img 
-                      src={product.images?.[0]?.url || '/placeholder.jpg'} 
-                      alt={product.name} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103" 
-                    />
-                  </Link>
-                  
-                  {/* Hover Panel - hidden on mobile, pointer-events fixed */}
-                  <div className="absolute inset-0 pointer-events-none bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:flex">
-                    <Link 
-                      href={`/shop/${product.id}`} 
-                      className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity rounded-none pointer-events-auto"
-                      style={{ backgroundColor: '#3a2e28' }}
-                    >
-                      <ShoppingBag size={12} /> View Item
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
+                    
+                    <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
+                      <img 
+                        src={product.images?.[0]?.url || '/placeholder.jpg'} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103" 
+                      />
                     </Link>
+                    
+                    <div className="absolute inset-0 pointer-events-none bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:flex">
+                      <Link 
+                        href={`/shop/${product.id}`} 
+                        className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity rounded-none pointer-events-auto"
+                        style={{ backgroundColor: '#3a2e28' }}
+                      >
+                        <ShoppingBag size={12} /> View Item
+                      </Link>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-4 text-center">
-                  <span className="text-[8px] uppercase tracking-widest opacity-60 font-medium" style={{ color: '#3a2e28' }}>
-                    {allCategoriesFlat.find(c => c.id === product.categoryId)?.name || "Fine Jewelry"}
-                  </span>
-                  
-                  {/* Title is clickable Link */}
-                  <Link href={`/shop/${product.id}`} className="block cursor-pointer">
-                    <h3 className="text-[11px] lg:text-xs font-light tracking-wide mt-1 hover:text-[#DB93B0] transition-colors duration-200 line-clamp-1" style={{ color: '#3a2e28' }}>
-                      {product.name}
-                    </h3>
-                  </Link>
-                  
-                  <p className="text-xs lg:text-sm font-semibold mt-1" style={{ color: '#3a2e28' }}>
-                    Rs. {product.variants?.length > 0 ? Number(product.variants[0].price).toLocaleString() : "N/A"}
-                  </p>
-                </div>
+                  <div className="mt-4 text-center">
+                    <span className="text-[8px] uppercase tracking-widest opacity-60 font-medium" style={{ color: '#3a2e28' }}>
+                      {allCategoriesFlat.find(c => c.id === product.categoryId)?.name || "Fine Jewelry"}
+                    </span>
+                    
+                    <Link href={`/shop/${product.id}`} className="block cursor-pointer">
+                      <h3 className="text-[11px] lg:text-xs font-light tracking-wide mt-1 hover:text-[#DB93B0] transition-colors duration-200 line-clamp-1" style={{ color: '#3a2e28' }}>
+                        {product.name}
+                      </h3>
+                    </Link>
+                    
+                    <p className="text-xs lg:text-sm font-semibold mt-1" style={{ color: '#3a2e28' }}>
+                      Rs. {product.variants?.length > 0 ? Number(product.variants[0].price).toLocaleString() : "N/A"}
+                    </p>
+                  </div>
 
+                </div>
+              ))}
+            </div>
+
+            {/* 🌟 LUXURY PAGINATION BAR */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-16 pt-8 border-t border-[#3a2e28]/10 select-none">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 border border-[#3a2e28]/20 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#3a2e28] hover:text-white transition-colors cursor-pointer"
+                  aria-label="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {[...Array(totalPages)].map((_, idx) => {
+                  const pageNum = idx + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`w-9 h-9 text-xs font-semibold tracking-wider transition-all cursor-pointer ${
+                        currentPage === pageNum
+                          ? 'bg-[#3a2e28] text-white border border-[#3a2e28]'
+                          : 'bg-transparent text-[#3a2e28] border border-[#3a2e28]/20 hover:border-[#3a2e28]'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border border-[#3a2e28]/20 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#3a2e28] hover:text-white transition-colors cursor-pointer"
+                  aria-label="Next Page"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </main>

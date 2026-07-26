@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ShoppingBag, Search, Menu, X, Plus, Minus, Phone, Mail, User, ChevronRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useSession } from 'next-auth/react';
 
 // 🌟 Custom Lightweight Instagram SVG Component
 const InstagramIcon = ({ size = 18, className = "" }) => (
@@ -29,6 +30,7 @@ const InstagramIcon = ({ size = 18, className = "" }) => (
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
+    const { data: session } = useSession(); // 🌟 Session status for conditional Auth buttons
     const [isOpen, setIsOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -165,12 +167,12 @@ export default function Navbar() {
                                 <UserDropdown />
                             </div>
 
-                            {/* 🌟 INSTAGRAM LINK NODE */}
+                            {/* 🌟 INSTAGRAM LINK NODE (DESKTOP ONLY - HIDDEN ON MOBILE NAVBAR) */}
                             <a 
                                 href={INSTAGRAM_URL} 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
-                                className="nav-icon-item p-1.5 block cursor-pointer"
+                                className="nav-icon-item p-1.5 hidden md:block cursor-pointer"
                                 aria-label="Visit Instagram Page"
                             >
                                 <InstagramIcon size={18} />
@@ -204,11 +206,11 @@ export default function Navbar() {
 
                 {/* Left Sliding Menu Core Deck */}
                 <div 
-                    className={`relative w-[85%] max-w-[340px] h-full shadow-2xl flex flex-col justify-between overflow-y-auto transform transition-transform duration-300 ease-in-out z-10 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
-                    style={{ backgroundColor: '#F7F2E6', color: '#3a2e28' }}
+                    className={`relative w-[85%] max-w-[340px] h-full shadow-2xl flex flex-col justify-between overflow-y-auto scrollbar-none transform transition-transform duration-300 ease-in-out z-10 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                    style={{ backgroundColor: '#F7F2E6', color: '#3a2e28', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     {/* Upper Exit Controls Anchor */}
-                    <div className="flex items-center justify-end px-5 pt-6 pb-2">
+                    <div className="flex items-center justify-end px-5 pt-5 pb-2">
                         <button 
                             onClick={() => setIsOpen(false)}
                             className="p-1 hover:opacity-60 transition-opacity cursor-pointer"
@@ -218,15 +220,15 @@ export default function Navbar() {
                     </div>
 
                     {/* Navigation Stream Matrix */}
-                    <div className="px-5 pb-6 flex-1 space-y-5 [font-family:'Plus_Jakarta_Sans',sans-serif] tracking-[0.12em]">
+                    <div className="px-5 pb-4 flex-1 space-y-4 [font-family:'Plus_Jakarta_Sans',sans-serif] tracking-[0.12em]">
                         
                         {/* HOME BLOCK */}
-                        <div className="text-[12px] uppercase font-bold border-b border-[#3a2e28]/10 pb-3">
+                        <div className="text-[12px] uppercase font-bold border-b border-[#3a2e28]/10 pb-2.5">
                             <Link href="/" onClick={() => setIsOpen(false)} className="block">Home</Link>
                         </div>
 
                         {/* ABOUT US NEST BLOCK */}
-                        <div className="border-b border-[#3a2e28]/10 pb-3">
+                        <div className="border-b border-[#3a2e28]/10 pb-2.5">
                             <button 
                                 onClick={() => setIsAboutOpen(!isAboutOpen)}
                                 className="w-full flex items-center justify-between text-[12px] uppercase font-bold text-left cursor-pointer"
@@ -248,7 +250,7 @@ export default function Navbar() {
                         </div>
 
                         {/* CATALOG NEST LAYER */}
-                        <div className="border-b border-[#3a2e28]/10 pb-3">
+                        <div className="border-b border-[#3a2e28]/10 pb-2.5">
                             <button 
                                 onClick={() => setIsCatalogOpen(!isCatalogOpen)}
                                 className="w-full flex items-center justify-between text-[12px] uppercase font-bold text-left cursor-pointer"
@@ -258,13 +260,13 @@ export default function Navbar() {
                             </button>
                             
                             {/* LEVEL 1: DYNAMIC MAIN CATEGORIES ENGINE */}
-                            <div className={`mt-3 pl-2 space-y-3 overflow-hidden transition-all duration-300 ${isCatalogOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <div className={`mt-2.5 pl-2 space-y-2.5 overflow-hidden transition-all duration-300 ${isCatalogOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                 {mainCategories.map((cat) => {
                                     const hasChildren = cat.children && cat.children.length > 0;
                                     const isCatOpen = !!openCategories[cat.id];
 
                                     return (
-                                        <div key={cat.id} className="space-y-2.5 py-0.5">
+                                        <div key={cat.id} className="space-y-2 py-0.5">
                                             {hasChildren ? (
                                                 <button
                                                     onClick={() => toggleCategory(cat.id)}
@@ -284,13 +286,13 @@ export default function Navbar() {
 
                                             {/* LEVEL 2: DYNAMIC SUB-CATEGORIES ENGINE */}
                                             {hasChildren && (
-                                                <div className={`pl-3 space-y-2.5 overflow-hidden transition-all duration-300 ${isCatOpen ? 'max-h-[800px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                                                <div className={`pl-3 space-y-2 overflow-hidden transition-all duration-300 ${isCatOpen ? 'max-h-[800px] opacity-100 mt-1.5' : 'max-h-0 opacity-0'}`}>
                                                     {cat.children.map((child) => {
                                                         const hasGrandChildren = child.children && child.children.length > 0;
                                                         const isSubOpen = !!openSubCategories[child.id];
 
                                                         return (
-                                                            <div key={child.id} className="space-y-2">
+                                                            <div key={child.id} className="space-y-1.5">
                                                                 {hasGrandChildren ? (
                                                                     <button
                                                                         onClick={() => toggleSubCategory(child.id)}
@@ -310,7 +312,7 @@ export default function Navbar() {
 
                                                                 {/* LEVEL 3: DYNAMIC GRANDCHILDREN PIPELINE */}
                                                                 {hasGrandChildren && (
-                                                                    <div className={`pl-6 space-y-2 overflow-hidden transition-all duration-300 ${isSubOpen ? 'max-h-[400px] opacity-100 mt-2 mb-1' : 'max-h-0 opacity-0'}`}>
+                                                                    <div className={`pl-6 space-y-1.5 overflow-hidden transition-all duration-300 ${isSubOpen ? 'max-h-[400px] opacity-100 mt-1.5 mb-1' : 'max-h-0 opacity-0'}`}>
                                                                         {child.children.map((grandChild) => (
                                                                             <button
                                                                                 key={grandChild.id}
@@ -334,13 +336,13 @@ export default function Navbar() {
                         </div>
 
                         {/* FAQ BLOCK */}
-                        <div className="text-[12px] uppercase font-bold border-b border-[#3a2e28]/10 pb-3">
+                        <div className="text-[12px] uppercase font-bold border-b border-[#3a2e28]/10 pb-2.5">
                             <Link href="/faqs" onClick={() => setIsOpen(false)} className="block">FAQ's</Link>
                         </div>
                     </div>
 
                     {/* BASE PANEL FOOTER STACK */}
-                    <div className="px-5 py-5 border-t border-[#3a2e28]/10 space-y-3.5 bg-black/[0.01] [font-family:'Plus_Jakarta_Sans',sans-serif] tracking-normal normal-case">
+                    <div className="px-5 py-4 border-t border-[#3a2e28]/10 space-y-3 bg-black/[0.01] [font-family:'Plus_Jakarta_Sans',sans-serif] tracking-normal normal-case shrink-0">
                         <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#3a2e28]/50">
                             Contact & Socials
                         </div>
@@ -355,18 +357,21 @@ export default function Navbar() {
                             <span>glintandglam.pk@gmail.com</span>
                         </a>
 
-                        {/* 🌟 INSTAGRAM MOBILE LINK */}
+                        {/* 🌟 INSTAGRAM MOBILE LINK IN DRAWER */}
                         <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black">
                             <InstagramIcon size={14} className="opacity-70" />
                             <span>@glintandglam.pk</span>
                         </a>
 
-                        <div className="pt-2.5 border-t border-[#3a2e28]/10">
-                            <Link href="/login" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black">
-                                <User className="w-3.5 h-3.5 opacity-70" />
-                                <span>Login / Register</span>
-                            </Link>
-                        </div>
+                        {/* 🌟 CONDITIONAL AUTH: Show Login / Register ONLY IF NOT LOGGED IN */}
+                        {!session?.user && (
+                            <div className="pt-2.5 border-t border-[#3a2e28]/10">
+                                <Link href="/login" onClick={() => setIsOpen(false)} className="flex items-center gap-3 text-xs text-[#5a3317]/90 font-light hover:text-black">
+                                    <User className="w-3.5 h-3.5 opacity-70" />
+                                    <span>Login / Register</span>
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -27,7 +27,7 @@ export default function ContactPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Form Validations for Pakistani Standards
+    // Form Validation for Pakistani Phone Standards
     const pakPhoneRegex = /^((\+92)|(0092)|(0))?3[0-9]{9}$/;
     if (!pakPhoneRegex.test(formData.phone)) {
       toast.error("Please enter a valid Pakistani phone number (e.g., 03001234567).");
@@ -36,24 +36,23 @@ export default function ContactPage() {
     }
 
     try {
-      // API call path setup ready for future backend connections
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         toast.success("Message sent successfully! Our team will reach out soon.");
         setFormData({ name: '', email: '', phone: '', message: '' });
       } else {
-        throw new Error("Failed to send message layout");
+        toast.error(data.error || "Failed to send message. Please try again.");
       }
     } catch (error) {
-      // Temporary success simulation if API route is not constructed yet
-      console.log("Submission simulated:", formData);
-      toast.success("Thank you! Your inquiry has been logged successfully.");
-      setFormData({ name: '', email: '', phone: '', message: '' });
+      console.error("Contact Form Submission Error:", error);
+      toast.error("Something went wrong. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -132,8 +131,6 @@ export default function ContactPage() {
             </div>
 
             <div className="w-full h-[1px]" style={{ backgroundColor: 'rgba(58, 46, 40, 0.08)' }} />
-            
-            {/* Note Box */}
           </div>
 
           {/* RIGHT PANEL: Minimalist Message Form (7 Columns) */}

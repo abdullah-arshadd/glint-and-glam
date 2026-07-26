@@ -1,7 +1,33 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// 🔄 PATCH: Product update handler (UPGRADED WITH ISFEATURED SUPPORT)
+// 🔍 1. GET: Single product details fetch karne ka handler (Fixes 405 Error)
+export async function GET(req, { params }) {
+  try {
+    const { id } = await params;
+    const targetId = String(id);
+
+    const product = await prisma.product.findUnique({
+      where: { id: targetId },
+      include: {
+        category: true,
+        images: true,
+        variants: true,
+      },
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(product, { status: 200 });
+  } catch (error) {
+    console.error("❌ GET Product Error:", error);
+    return NextResponse.json({ error: "Failed to fetch product details" }, { status: 500 });
+  }
+}
+
+// 🔄 2. PATCH: Product update handler (UPGRADED WITH ISFEATURED SUPPORT)
 export async function PATCH(req, { params }) {
   try {
     const { id } = await params;
@@ -36,7 +62,7 @@ export async function PATCH(req, { params }) {
         // A. Pehle un variants ki IDs nikal lo jo frontend ke current safe structure me bachi hain
         const incomingVariantIds = variants.filter(v => v.id).map(v => String(v.id));
 
-        // B. Jo variants payload me nahi aaye (yaani user ne delete kar diye), unhe safely target karo 
+        // B. Jo variants payload me nahi aaye (yaani user ne delete kar दिए), unhe safely target karo 
         // par sirf tab delete karo agar un par koi order dependencies na ho!
         await tx.productVariant.deleteMany({
           where: {
@@ -82,7 +108,12 @@ export async function PATCH(req, { params }) {
   }
 }
 
-// ❌ DELETE: Full Cascade Control with Soft-Archive Fallback
+// 🔄 3. PUT: Alias to PATCH for frontend compatibility
+export async function PUT(req, ctx) {
+  return PATCH(req, ctx);
+}
+
+// ❌ 4. DELETE: Full Cascade Control with Soft-Archive Fallback
 export async function DELETE(req, { params }) {
   try {
     const { id } = await params;

@@ -9,7 +9,7 @@ export default function PolicyPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* HERO HEADER */}
-        <div className="text-center mb-20 py-16 lg:py-24 border" style={{ backgroundColor: 'rgba(58, 46, 40, 0.02)', borderColor: 'rgba(58, 46, 40, 0.1)' }}>
+        <div className="text-center mb-20 py-16 lg:py-24 border" style={{ backgroundColor: '#F9F8F4', borderColor: 'rgba(58, 46, 40, 0.1)' }}>
           <span className="text-[10px] lg:text-xs uppercase tracking-[0.3em] font-semibold block mb-3 opacity-60">
             Legal & Trust
           </span>
@@ -23,19 +23,19 @@ export default function PolicyPage() {
 
         {/* QUICK NAVIGATION ICONS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
-          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: 'rgba(58, 46, 40, 0.01)', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
+          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: '#F9F8F4', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
             <ShieldCheck size={20} className="mx-auto opacity-70" strokeWidth={1.5} />
             <span className="text-[10px] font-semibold tracking-widest uppercase block">Privacy</span>
           </div>
-          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: 'rgba(58, 46, 40, 0.01)', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
+          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: '#F9F8F4', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
             <RefreshCw size={20} className="mx-auto opacity-70" strokeWidth={1.5} />
             <span className="text-[10px] font-semibold tracking-widest uppercase block">Returns</span>
           </div>
-          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: 'rgba(58, 46, 40, 0.01)', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
+          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: '#F9F8F4', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
             <Truck size={20} className="mx-auto opacity-70" strokeWidth={1.5} />
             <span className="text-[10px] font-semibold tracking-widest uppercase block">Shipping</span>
           </div>
-          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: 'rgba(58, 46, 40, 0.01)', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
+          <div className="border p-4 text-center space-y-2" style={{ backgroundColor: '#F9F8F4', borderColor: 'rgba(58, 46, 40, 0.08)' }}>
             <Lock size={20} className="mx-auto opacity-70" strokeWidth={1.5} />
             <span className="text-[10px] font-semibold tracking-widest uppercase block">Security</span>
           </div>

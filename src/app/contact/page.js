@@ -113,7 +113,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#3a2e28' }}>Email Inquiries</h4>
-                  <p className="text-xs font-light mt-0.5 opacity-80" style={{ color: '#3a2e28' }}>support@glintandglam.com</p>
+                  <p className="text-xs font-light mt-0.5 opacity-80" style={{ color: '#3a2e28' }}>glintandglam.pk@gmail.com</p>
                   <span className="text-[10px] block mt-1 opacity-50" style={{ color: '#3a2e28' }}>Response inside 24 Business Hours</span>
                 </div>
               </div>

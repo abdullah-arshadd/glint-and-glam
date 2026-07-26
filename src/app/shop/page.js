@@ -1,15 +1,18 @@
 'use client';
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-// 🌟 Added ChevronDown for the dropdown UI
 import { SlidersHorizontal, ShoppingBag, ChevronDown } from 'lucide-react';
+import useSWR from 'swr';
+
+// 🌟 SWR Fetcher Utility Function
+const fetcher = (url) => fetch(url).then((res) => res.json());
 
 // 🌟 LUXURY SKELETON LOADERS: Flat structural layout matching the theme guidelines
 function SkeletonCard() {
   return (
     <div className="w-full space-y-4 animate-pulse">
-      {/* Product Image Box Placeholder (Sharp corners, flat design) */}
+      {/* Product Image Box Placeholder */}
       <div className="w-full aspect-[4/5] bg-[#3a2e28]/5 rounded-none" />
       
       {/* Product Info Lines Placeholder */}
@@ -39,18 +42,56 @@ function ShopContent() {
   // URL parameter extraction
   const categoryFromUrl = searchParams.get('category');
 
-  const [categories, setCategories] = useState([]);
-  const [allCategoriesFlat, setAllCategoriesFlat] = useState([]); 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
   // --- Dynamic Cascade State Tracks ---
   const [selectedMain, setSelectedMain] = useState('All');
   const [selectedSub, setSelectedSub] = useState('');
   const [selectedChild, setSelectedChild] = useState('');
   
-  // 🌟 NEW: Sorting State
+  // Sorting State
   const [sortOption, setSortOption] = useState('default');
+
+  // 🌟 SWR DATA CACHING PIPELINE (Instant back-navigation support)
+  const { data: catData, isLoading: isCatLoading } = useSWR("/api/categories", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000, // 1 minute memory cache
+  });
+
+  const { data: prodData, isLoading: isProdLoading } = useSWR("/api/products", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000, // 1 minute memory cache
+  });
+
+  // Validated Collections
+  const categories = useMemo(() => {
+    if (Array.isArray(catData)) return catData;
+    if (catData && Array.isArray(catData.categories)) return catData.categories;
+    return [];
+  }, [catData]);
+
+  const products = useMemo(() => {
+    if (Array.isArray(prodData)) return prodData;
+    if (prodData && Array.isArray(prodData.products)) return prodData.products;
+    return [];
+  }, [prodData]);
+
+  // Flattened Categories Tree Generator
+  const allCategoriesFlat = useMemo(() => {
+    const flatten = (items) => {
+      if (!Array.isArray(items)) return [];
+      let flat = [];
+      items.forEach(item => {
+        if (item) {
+          flat.push(item);
+          if (item.children) flat = [...flat, ...flatten(item.children)];
+        }
+      });
+      return flat;
+    };
+    return flatten(categories);
+  }, [categories]);
+
+  // Combined Loading state (True only when initially fetching empty cache)
+  const loading = (isCatLoading && categories.length === 0) || (isProdLoading && products.length === 0);
 
   // 🔑 URL Dynamic Sync Pipeline
   useEffect(() => {
@@ -80,52 +121,6 @@ function ShopContent() {
       setSelectedChild('');
     }
   }, [categoryFromUrl, allCategoriesFlat]);
-
-  // --- Core API Data Synchronization Pipeline ---
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [catRes, prodRes] = await Promise.all([
-          fetch("/api/categories"),
-          fetch("/api/products")
-        ]);
-        
-        const catData = await catRes.json();
-        const prodData = await prodRes.json();
-        
-        const validatedCategories = Array.isArray(catData) 
-          ? catData 
-          : (catData && Array.isArray(catData.categories) ? catData.categories : []);
-          
-        const validatedProducts = Array.isArray(prodData) 
-          ? prodData 
-          : (prodData && Array.isArray(prodData.products) ? prodData.products : []);
-
-        setCategories(validatedCategories);
-        setProducts(validatedProducts);
-
-        const flatten = (items) => {
-          if (!Array.isArray(items)) return [];
-          let flat = [];
-          items.forEach(item => {
-            if (item) {
-              flat.push(item);
-              if (item.children) flat = [...flat, ...flatten(item.children)];
-            }
-          });
-          return flat;
-        };
-        
-        setAllCategoriesFlat(flatten(validatedCategories));
-
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
 
   // --- Navigation & State Mutators ---
   const handleMainClick = (id) => {
@@ -162,7 +157,7 @@ function ShopContent() {
     return ids;
   };
 
-  // 🌟 STEP 1: Filter the products
+  // STEP 1: Filter the products
   const filteredProducts = products.filter(p => {
     if (!p) return false;
     const activeTargetId = selectedChild || selectedSub || selectedMain;
@@ -172,7 +167,7 @@ function ShopContent() {
     return validCategoryScopeIds.includes(p.categoryId);
   });
 
-  // 🌟 STEP 2: Sort the filtered products based on the selected option
+  // STEP 2: Sort the filtered products based on the selected option
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortOption === 'price-asc') {
       const priceA = a.variants?.length > 0 ? Number(a.variants[0].price) : 0;
@@ -310,7 +305,7 @@ function ShopContent() {
             </div>
           )}
 
-          {/* 🌟 Active Items Count & Sort Dropdown */}
+          {/* Active Items Count & Sort Dropdown */}
           <div className="flex items-center justify-between w-full mt-4 pt-4" style={{ borderTop: '1px solid rgba(58, 46, 40, 0.08)' }}>
             
             {/* Left side: Item Count */}
@@ -354,7 +349,7 @@ function ShopContent() {
                 
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
                   
-                  {/* 🌟 FIX: Image is now a Link for Mobile tapping */}
+                  {/* Image is now a Link for Mobile tapping */}
                   <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
                     <img 
                       src={product.images?.[0]?.url || '/placeholder.jpg'} 
@@ -380,7 +375,7 @@ function ShopContent() {
                     {allCategoriesFlat.find(c => c.id === product.categoryId)?.name || "Fine Jewelry"}
                   </span>
                   
-                  {/* 🌟 FIX: Title is now also a clickable Link */}
+                  {/* Title is clickable Link */}
                   <Link href={`/shop/${product.id}`} className="block cursor-pointer">
                     <h3 className="text-[11px] lg:text-xs font-light tracking-wide mt-1 hover:text-[#DB93B0] transition-colors duration-200 line-clamp-1" style={{ color: '#3a2e28' }}>
                       {product.name}
@@ -403,7 +398,6 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    // 🌟 Next.js dynamic chunks fallback optimization using the same custom skeleton structure
     <Suspense fallback={
       <div className="min-h-screen py-32" style={{ backgroundColor: '#f5f3ed' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

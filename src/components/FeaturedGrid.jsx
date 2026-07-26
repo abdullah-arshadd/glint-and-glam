@@ -2,10 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Eye, Loader2 } from 'lucide-react';
+import useSWR from 'swr';
+
+// 🌟 SWR Fetcher Utility
+const fetcher = (url) => fetch(url).then((res) => res.json());
 
 export default function FeaturedGrid() {
-  const [bestSellers, setBestSellers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const sliderRef = useRef(null);
 
@@ -25,25 +27,15 @@ export default function FeaturedGrid() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    async function fetchFeaturedData() {
-      try {
-        const prodRes = await fetch("/api/products?featured=true");
-        const prodData = await prodRes.json();
-          
-        const validatedProducts = Array.isArray(prodData) 
-          ? prodData 
-          : (prodData && Array.isArray(prodData.products) ? prodData.products : []);
-        
-        setBestSellers(validatedProducts);
-      } catch (error) {
-        console.error("Error loading featured layout elements:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchFeaturedData();
-  }, []);
+  // 🌟 SWR Data Fetching Layer (Automatic In-Memory Cache)
+  const { data, isLoading } = useSWR("/api/products?featured=true", fetcher, {
+    revalidateOnFocus: false, // Tab switch hone par unnecessary fetch nahi karega
+    dedupingInterval: 60000,  // 1 minute tak memory cache active rakhega
+  });
+
+  const bestSellers = Array.isArray(data) 
+    ? data 
+    : (data && Array.isArray(data.products) ? data.products : []);
 
   // Total steps tracking for indicators
   const totalDots = Math.ceil(bestSellers.length / itemsPerPage);
@@ -69,7 +61,7 @@ export default function FeaturedGrid() {
     }
   };
 
-  if (loading) {
+  if (isLoading && bestSellers.length === 0) {
     return (
       <div className="w-full py-32 flex justify-center items-center" style={{ backgroundColor: '#f7f2e6' }}>
         <Loader2 className="animate-spin" style={{ color: '#3a2e28' }} size={32} />
@@ -107,7 +99,7 @@ export default function FeaturedGrid() {
               {/* Image Container with precise aspect ratio */}
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F7BFB4]/5 border border-[#F7BFB4]/20 transition-all duration-300">
                 
-                {/* 🌟 FIX: Tasveer ko Link bana diya gaya hai taake mobile par tap karte hi page khul jaye */}
+                {/* 🌟 Mobile Tap-to-Go Link */}
                 <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
                   <img 
                     src={product.images?.[0]?.url || '/placeholder.jpg'} 

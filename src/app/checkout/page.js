@@ -4,14 +4,17 @@ import { ArrowLeft, ShieldCheck, Truck, Building2, UploadCloud } from 'lucide-re
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
 
 export default function CheckoutPage() {
+  const { data: session } = useSession(); // 🌟 Session extraction for Auth Check
   const { cartItems, cartTotal, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: '',
+    email: '', // 🌟 Email field for guest checkout
     phone: '',
     address: '',
     city: 'Lahore',
@@ -20,7 +23,7 @@ export default function CheckoutPage() {
 
   const [paymentMethod, setPaymentMethod] = useState('COD'); 
   
-  // 🌟 NEW: State to store the uploaded screenshot (base64)
+  // 🌟 State to store the uploaded screenshot (base64)
   const [paymentProof, setPaymentProof] = useState(null);
   const [fileName, setFileName] = useState('');
 
@@ -44,12 +47,11 @@ export default function CheckoutPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 🌟 NEW: Function to handle image upload and convert to base64
+  // Function to handle image upload and convert to base64
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check file size (Max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File is too large. Please upload an image under 5MB.");
       return;
@@ -58,7 +60,7 @@ export default function CheckoutPage() {
     setFileName(file.name);
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPaymentProof(reader.result); // Base64 string ban jayegi
+      setPaymentProof(reader.result);
     };
     reader.readAsDataURL(file);
   };
@@ -67,6 +69,15 @@ export default function CheckoutPage() {
     if (!formData.fullName.trim() || formData.fullName.trim().length < 3) {
       toast.error("Please enter a valid full name (minimum 3 characters).");
       return false;
+    }
+
+    // 🌟 Validate Email ONLY if user is guest (logged out)
+    if (!session?.user?.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
+        toast.error("Please enter a valid email address to receive your order confirmation.");
+        return false;
+      }
     }
 
     const pakPhoneRegex = /^((\+92)|(0092)|(0))?3[0-9]{9}$/;
@@ -80,7 +91,6 @@ export default function CheckoutPage() {
       return false;
     }
 
-    // 🌟 NEW: Validate payment proof
     if (!paymentProof) {
       toast.error("Please upload the payment screenshot to proceed.");
       return false;
@@ -100,12 +110,17 @@ export default function CheckoutPage() {
     if (!validateForm()) return;
 
     setLoading(true);
+
+    // 🌟 Email decision: Logged in user's email takes priority over guest form email
+    const finalCustomerEmail = session?.user?.email || formData.email;
+
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: formData.fullName,
+          email: finalCustomerEmail, // 🌟 Sent to API for Resend emails
           phone: formData.phone,
           city: formData.city,
           address: formData.address,
@@ -113,7 +128,7 @@ export default function CheckoutPage() {
           items: cartItems,
           total: grandTotal,
           paymentMethod: paymentMethod,
-          paymentProof: paymentProof // 🌟 NEW: Sending screenshot to backend
+          paymentProof: paymentProof
         })
       });
 
@@ -137,7 +152,6 @@ export default function CheckoutPage() {
 
   if (cartItems.length === 0) return null;
 
-  // 🌟 Reusable Bank Details Component
   const BankAccountInfo = () => (
     <div className="mt-3 bg-[#f5f3ed] p-3 rounded-md text-xs border border-[rgba(58,46,40,0.1)]">
       <p className="font-semibold mb-1.5" style={{ color: '#3a2e28' }}>Bank Account Details:</p>
@@ -168,17 +182,30 @@ export default function CheckoutPage() {
               </h1>
 
               <form id="checkout-form" className="space-y-5" onSubmit={handlePlaceOrder}>
-                {/* Form fields same as before... */}
+                
+                {/* Full Name */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-widest font-semibold block" style={{ color: '#3a2e28', opacity: 0.7 }}>Full Name</label>
                   <input name="fullName" value={formData.fullName} onChange={handleInputChange} type="text" className="w-full border px-4 py-3 text-xs focus:border-[#DB93B0] focus:outline-none transition-colors bg-white/80" style={{ borderColor: 'rgba(58, 46, 40, 0.15)', color: '#3a2e28' }} required disabled={loading} placeholder="e.g. Muhammad Ali" />
                 </div>
 
+                {/* 🌟 CONDITIONAL EMAIL FIELD: Show ONLY if user is guest (logged out) */}
+                {!session?.user?.email && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase tracking-widest font-semibold block" style={{ color: '#3a2e28', opacity: 0.7 }}>
+                      Email Address <span className="text-[9px] lowercase font-normal opacity-70"></span>
+                    </label>
+                    <input name="email" value={formData.email} onChange={handleInputChange} type="email" className="w-full border px-4 py-3 text-xs focus:border-[#DB93B0] focus:outline-none transition-colors bg-white/80" style={{ borderColor: 'rgba(58, 46, 40, 0.15)', color: '#3a2e28' }} required disabled={loading} placeholder="e.g. yourname@gmail.com" />
+                  </div>
+                )}
+
+                {/* Phone Number */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-widest font-semibold block" style={{ color: '#3a2e28', opacity: 0.7 }}>Phone Number</label>
                   <input name="phone" value={formData.phone} onChange={handleInputChange} type="tel" className="w-full border px-4 py-3 text-xs focus:border-[#DB93B0] focus:outline-none transition-colors bg-white/80" style={{ borderColor: 'rgba(58, 46, 40, 0.15)', color: '#3a2e28' }} required disabled={loading} placeholder="e.g. 03001234567" />
                 </div>
 
+                {/* City Selection */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-widest font-semibold block" style={{ color: '#3a2e28', opacity: 0.7 }}>City</label>
                   <select name="city" value={formData.city} onChange={handleInputChange} className="w-full border px-4 py-3 text-xs focus:border-[#DB93B0] focus:outline-none transition-colors bg-white/80 cursor-pointer" style={{ borderColor: 'rgba(58, 46, 40, 0.15)', color: '#3a2e28' }} required disabled={loading}>
@@ -190,11 +217,13 @@ export default function CheckoutPage() {
                   </select>
                 </div>
 
+                {/* Address */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-widest font-semibold block" style={{ color: '#3a2e28', opacity: 0.7 }}>Complete Shipping Address</label>
                   <input name="address" value={formData.address} onChange={handleInputChange} type="text" className="w-full border px-4 py-3 text-xs focus:border-[#DB93B0] focus:outline-none transition-colors bg-white/80" style={{ borderColor: 'rgba(58, 46, 40, 0.15)', color: '#3a2e28' }} required disabled={loading} placeholder="House/Apartment number, Street layout, Area Sector name" />
                 </div>
 
+                {/* Notes */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-widest font-semibold block" style={{ color: '#3a2e28', opacity: 0.7 }}>Order Notes (Optional)</label>
                   <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows="3" className="w-full border px-4 py-3 text-xs focus:border-[#DB93B0] focus:outline-none transition-colors resize-none bg-white/80" placeholder="Notes about your delivery, e.g. special instructions." style={{ borderColor: 'rgba(58, 46, 40, 0.15)', color: '#3a2e28' }} disabled={loading}></textarea>
@@ -210,7 +239,7 @@ export default function CheckoutPage() {
 
               <div className="space-y-4">
                 
-                {/* 🌟 1. Cash On Delivery Block */}
+                {/* 1. Cash On Delivery Block */}
                 <div
                   className="border transition-all duration-300 bg-white/80"
                   style={{ borderColor: paymentMethod === 'COD' ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)', borderWidth: paymentMethod === 'COD' ? '1.5px' : '1px' }}
@@ -228,7 +257,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* COD Details & Upload Section */}
                   {paymentMethod === 'COD' && (
                     <div className="p-4 pt-0 border-t mt-2" style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }}>
                       <p className="text-[11px] mt-4 leading-relaxed" style={{ color: '#3a2e28' }}>
@@ -252,7 +280,7 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* 🌟 2. Advance Bank Transfer Block */}
+                {/* 2. Advance Bank Transfer Block */}
                 <div
                   className="border transition-all duration-300 bg-white/80"
                   style={{ borderColor: paymentMethod === 'BANK' ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)', borderWidth: paymentMethod === 'BANK' ? '1.5px' : '1px' }}
@@ -270,7 +298,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* BANK Details & Upload Section */}
                   {paymentMethod === 'BANK' && (
                     <div className="p-4 pt-0 border-t mt-2" style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }}>
                       <p className="text-[11px] mt-4 leading-relaxed" style={{ color: '#3a2e28' }}>

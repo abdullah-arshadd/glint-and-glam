@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { User, LogIn, UserPlus, Settings, LogOut, Package } from "lucide-react";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
-  const router = useRouter();
   const pathname = usePathname();
 
   const checkSession = async () => {
@@ -25,7 +24,7 @@ export default function UserDropdown() {
       
       if (res.ok) {
         const data = await res.json();
-        if (data.user) {
+        if (data?.user) {
           setUser(data.user);
           return;
         }
@@ -55,17 +54,23 @@ export default function UserDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  // 🌟 Clean Logout: Clears memory & hard-redirects to Homepage
   const handleLogout = async () => {
     try {
-      const res = await fetch("/api/auth/logout", { method: "POST" });
-      if (res.ok) {
-        setUser(null);
-        setIsOpen(false);
-        router.push("/");
-        router.refresh();
-      }
+      await fetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
       console.error("Logout failed:", err);
+    } finally {
+      setUser(null);
+      setIsOpen(false);
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("glam_guest_cart");
+      }
+
+      // 🚀 Hard Browser Redirect to Homepage
+      // React state, SWR cache aur Cart context bilkul clean guest mode par reset ho jaye ga
+      window.location.href = "/";
     }
   };
 

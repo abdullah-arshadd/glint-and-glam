@@ -77,7 +77,12 @@ export default function Hero() {
         transition={{ duration: 1.5 }}
         className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[600px] h-[600px] bg-[#F5F2EB]/5 rounded-full blur-3xl pointer-events-none z-10"
       />
-      <div className="absolute inset-0 bg-black/20 lg:bg-black/15 pointer-events-none z-10" />
+
+      {/* 🌑 DARKENING OVERLAY — improves text contrast against light backgrounds */}
+      <div className="absolute inset-0 bg-black/40 lg:bg-black/35 pointer-events-none z-10" />
+
+      {/* 🌫️ FOCUSED GRADIENT BEHIND TEXT — extra contrast right where the copy sits */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/25 to-transparent lg:bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.5)_0%,rgba(0,0,0,0.15)_60%,transparent_100%)] pointer-events-none z-10" />
 
       {/* 🎯 CONTENT CONTAINER WITH STAGGERED MOTION */}
       <div className="relative max-w-7xl mx-auto w-full px-6 sm:px-12 lg:px-16 z-20 flex flex-col text-left lg:text-center items-start lg:items-center">
@@ -87,8 +92,8 @@ export default function Hero() {
           initial={{ opacity: 0, y: 35 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl [font-family:'Cormorant_Garamond',serif] leading-[1.1] mb-6 tracking-tight font-medium drop-shadow-md"
-          style={{ color: '#F7F2E6' }}
+          className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl [font-family:'Cormorant_Garamond',serif] leading-[1.1] mb-6 tracking-tight font-medium"
+          style={{ color: '#F7F2E6', textShadow: '0 2px 20px rgba(0,0,0,0.65), 0 1px 4px rgba(0,0,0,0.5)' }}
         >
           Radiance in Every <br />
           <span className="italic font-light opacity-95 text-white">Exquisite</span> Detail
@@ -99,11 +104,11 @@ export default function Hero() {
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 0.95, y: 0 }}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
-          className="max-w-md md:max-w-xl lg:mx-auto text-xs sm:text-sm md:text-base font-light leading-relaxed mb-10 [font-family:'Plus_Jakarta_Sans',sans-serif] drop-shadow-xs"
-          style={{ color: '#F7F2E6' }}
+          className="max-w-md md:max-w-xl lg:mx-auto text-xs sm:text-sm md:text-base font-light leading-relaxed mb-10 [font-family:'Plus_Jakarta_Sans',sans-serif]"
+          style={{ color: '#F7F2E6', textShadow: '0 1px 12px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.5)' }}
         >
-          Discover our curated collection of fine luxury perfumes, where timeless
-          craftsmanship meets modern elegance. Crafted to celebrate your essence.
+          Indulge in a world of fine jewellery, where every piece is designed to
+          reflect your grace, style, and the moments that matter most.
         </motion.p>
 
         {/* BUTTONS WRAPPER WITH HOVER MOTION */}

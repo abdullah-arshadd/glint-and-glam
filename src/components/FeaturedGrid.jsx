@@ -76,7 +76,7 @@ export default function FeaturedGrid() {
         {/* --- SECTION TITLE --- */}
         <div className="text-center mb-16">
           <span className="text-[10px] lg:text-xs uppercase tracking-[0.3em] text-[#3A2E28] font-semibold block mb-3">
-            Twinkles Signature
+            Glint and Glam Signature
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl text-[#2D2524] [font-family:'Cormorant_Garamond',serif] font-medium tracking-wide">
             Our Best Sellers

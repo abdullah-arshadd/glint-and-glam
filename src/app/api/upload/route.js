@@ -1,48 +1,47 @@
-import { prisma } from '@/lib/prisma';
+import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+
+// 🌟 Vercel Serverless Function Timeout Extension (60 seconds)
+export const maxDuration = 60;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req) {
   try {
-    // 🌟 Correct Parsing: Read JSON payload sent from frontend
-    const body = await req.json();
-    const { name, description, categoryId, images, variants, isFeatured } = body;
+    const formData = await req.formData();
+    const file = formData.get('file');
 
-    if (!name || !description || !variants || variants.length === 0) {
-      return NextResponse.json(
-        { message: 'Missing required product metrics' },
-        { status: 400 }
-      );
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const newProduct = await prisma.product.create({
-      data: {
-        name,
-        description,
-        categoryId: categoryId || null,
-        isFeatured: Boolean(isFeatured),
-        images: {
-          create: images.map((img) => ({ url: img.url })),
-        },
-        variants: {
-          create: variants.map((v) => ({
-            size: v.size || 'Standard',
-            color: v.color || '',
-            price: Number(v.price),
-            stock: Number(v.stock),
-          })),
-        },
-      },
-      include: {
-        images: true,
-        variants: true,
-      },
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: 'glint_and_glam_products',
+            resource_type: 'auto',
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        )
+        .end(buffer);
     });
 
-    return NextResponse.json(newProduct, { status: 201 });
+    return NextResponse.json({ url: uploadResult.secure_url }, { status: 200 });
   } catch (error) {
-    console.error('Create product API error:', error);
+    console.error('Cloudinary upload error:', error);
     return NextResponse.json(
-      { message: `Database error: ${error.message}` },
+      { error: `Image upload failed: ${error.message}` },
       { status: 500 }
     );
   }

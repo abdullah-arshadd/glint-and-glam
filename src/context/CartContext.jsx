@@ -31,15 +31,21 @@ export function CartProvider({ children }) {
 
   const toggleCart = () => setIsCartOpen(!isCartOpen);
 
-  // 3. Database mein product variant add karna
-  const addToCart = async (variantId, stockAvailable) => {
+  // 3. Database mein product variant add karna (Strictly adds 1 quantity & opens side drawer)
+  const addToCart = async (variantId, stockAvailable = 999) => {
     if (!variantId) {
       toast.error("Invalid product variant!");
       return;
     }
 
+    // Single item click behavior lock
+    const qtyToAdd = 1;
     const existing = cartItems.find(item => item.variantId === variantId);
-    if (existing && existing.quantity >= stockAvailable) {
+    const currentQtyInCart = existing ? existing.quantity : 0;
+    const requestedTotalQty = currentQtyInCart + qtyToAdd;
+
+    // Stock Guardrail Check
+    if (stockAvailable !== undefined && requestedTotalQty > stockAvailable) {
       toast.error(`Sorry, only ${stockAvailable} available in stock!`);
       return;
     }
@@ -48,11 +54,12 @@ export function CartProvider({ children }) {
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ variantId, quantity: 1 }) 
+        body: JSON.stringify({ variantId, quantity: qtyToAdd }) // Always passes exactly 1
       });
 
       if (res.ok) {
         await fetchCart(); // UI Refresh
+        setIsCartOpen(true); // 🔥 Item add hote hi side drawer auto-open hoga
         toast.success("Added to bag successfully!");
       } else {
         toast.error("Could not add to bag");
@@ -62,12 +69,10 @@ export function CartProvider({ children }) {
     }
   };
 
-  // 🌟 4. OPTIMISTIC UPDATE: Cart se specific item remove karna (ZERO DELAY)
+  // 🌟 4. OPTIMISTIC UPDATE: Cart se specific item remove karna
   const removeFromCart = async (cartItemId) => {
-    // Backup purani state
     const previousCart = [...cartItems];
 
-    // Frontend par foran item delete kar do
     setCartItems((prev) => prev.filter((item) => item.id !== cartItemId));
     toast.success("Item removed from bag");
 
@@ -81,13 +86,12 @@ export function CartProvider({ children }) {
       if (!res.ok) throw new Error("Backend failed to delete");
 
     } catch (error) {
-      // Agar API fail hui toh wapis item le aao
       setCartItems(previousCart);
       toast.error("Failed to remove item. It has been restored.");
     }
   };
 
-  // 🌟 5. OPTIMISTIC UPDATE: Quantity kam ya zyada karna (Plus/Minus) (ZERO DELAY)
+  // 🌟 5. OPTIMISTIC UPDATE: Quantity kam ya zyada karna (Plus/Minus in Cart Drawer)
   const updateQuantity = async (cartItemId, amount) => {
     const item = cartItems.find((i) => i.id === cartItemId);
     if (!item) return;
@@ -95,22 +99,18 @@ export function CartProvider({ children }) {
     const newQty = item.quantity + amount;
     if (newQty < 1) return;
 
-    // 🛑 STOCK CHECK (Guardrail): Agar user limit se zyada barhaye toh error do
-    if (amount > 0 && newQty > item.variant.stock) {
+    if (amount > 0 && item.variant?.stock && newQty > item.variant.stock) {
       toast.error(`Limit Reached! Only ${item.variant.stock} left in stock.`);
-      return; // Code yahin ruk jayega, quantity nahi barhegi
+      return;
     }
 
-    // Backup purani state
     const previousCart = [...cartItems];
 
-    // Frontend par foran quantity update kardo
     setCartItems(prev => prev.map(i => 
       i.id === cartItemId ? { ...i, quantity: newQty } : i
     ));
 
     try {
-      // Background mein chup chap API call bhejo
       const res = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,13 +122,9 @@ export function CartProvider({ children }) {
       });
 
       if (!res.ok) throw new Error("API Update Failed");
-      
-      // ✅ Note: Yahan pehle 'await fetchCart()' tha jis ki wajah se delay aata tha. 
-      // Ab humne wo hata diya hai kyunke frontend pehle hi update ho chuka hai!
 
     } catch (error) {
       console.error("Quantity update nahi ho saki:", error);
-      // Agar net disconnect ho jaye ya API phat jaye, quantity wapis purani wali kardo
       setCartItems(previousCart);
       toast.error("Network error, quantity reverted.");
     }
@@ -156,6 +152,7 @@ export function CartProvider({ children }) {
   return (
     <CartContext.Provider value={{ 
       isCartOpen, 
+      setIsCartOpen,
       toggleCart, 
       cartItems, 
       addToCart, 

@@ -54,7 +54,8 @@ model ProductImage {
 // 3. Product Variant Model
 model ProductVariant {
   id         String      @id @default(cuid())
-  size       String
+  size       String?
+  color      String?     // 🔑 Color Variant Attribute Field
   price      Decimal     @db.Decimal(10, 2)
   stock      Int         @default(0)
   productId  String

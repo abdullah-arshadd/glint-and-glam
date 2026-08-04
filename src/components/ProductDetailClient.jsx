@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext'; 
 import { toast } from 'sonner'; 
@@ -11,41 +11,81 @@ const fetcher = (url) => fetch(url).then((res) => res.json());
 export default function ProductDetailClient({ productId, initialProduct }) {
   const { addToCart } = useCart();
 
-  // 🌟 SWR Memory-Caching Layer (Instant Re-visit Load)
+  // 🌟 SWR Memory-Caching Layer
   const { data: swrData } = useSWR(
     productId ? `/api/products/${productId}` : null,
     fetcher,
     {
-      fallbackData: initialProduct, // Pehla render Server Props se fast hoga
-      revalidateOnFocus: false,     // Unnecessary tab focus fetches disabled
-      dedupingInterval: 60000,      // 1 minute active memory cache
+      fallbackData: initialProduct,
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
     }
   );
 
-  // Fallback to SWR cached data or original server props
   const product = swrData?.product || swrData || initialProduct;
 
-  // States
-  const [selectedVariant, setSelectedVariant] = useState(
-    product?.variants?.[0] || { id: 'default', price: 0, size: 'N/A', stock: 0 }
-  );
+  // Selection States
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
   const [selectedImage, setSelectedImage] = useState(
     product?.images?.[0]?.url || "/placeholder.jpg"
   );
   const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Sync states if cached product updates dynamically
+  // 1. Unique Sizes Extract Karo
+  const allSizes = useMemo(() => {
+    if (!product?.variants) return [];
+    return Array.from(new Set(product.variants.map((v) => v.size).filter(Boolean)));
+  }, [product]);
+
+  // Auto-select First Available Size
   useEffect(() => {
-    if (product) {
-      if (product.variants?.length > 0 && selectedVariant.id === 'default') {
-        setSelectedVariant(product.variants[0]);
-      }
-      if (product.images?.length > 0 && selectedImage === "/placeholder.jpg") {
-        setSelectedImage(product.images[0].url);
-      }
+    if (allSizes.length > 0 && !selectedSize) {
+      setSelectedSize(allSizes[0]);
     }
-  }, [product, selectedVariant.id, selectedImage]);
+  }, [allSizes, selectedSize]);
+
+  // 2. Selected Size ke mutabiq available colors filter karo
+  const availableColorsForSize = useMemo(() => {
+    if (!product?.variants) return [];
+    
+    const filteredVariants = selectedSize 
+      ? product.variants.filter((v) => v.size === selectedSize)
+      : product.variants;
+
+    return Array.from(new Set(filteredVariants.map((v) => v.color).filter(Boolean)));
+  }, [product, selectedSize]);
+
+  // Auto-select First Available Color jab Size badle
+  useEffect(() => {
+    if (availableColorsForSize.length > 0) {
+      if (!availableColorsForSize.includes(selectedColor)) {
+        setSelectedColor(availableColorsForSize[0]);
+      }
+    } else {
+      setSelectedColor('');
+    }
+  }, [availableColorsForSize, selectedColor]);
+
+  // 3. Size + Color dono ka exact variant match find karo
+  const selectedVariant = useMemo(() => {
+    if (!product?.variants || product.variants.length === 0) {
+      return { id: 'default', price: 0, stock: 0 };
+    }
+    return product.variants.find((v) => {
+      const matchSize = selectedSize ? v.size === selectedSize : true;
+      const matchColor = selectedColor ? v.color === selectedColor : true;
+      return matchSize && matchColor;
+    }) || product.variants[0];
+  }, [product, selectedSize, selectedColor]);
+
+  // Sync main image if cached product updates
+  useEffect(() => {
+    if (product?.images?.length > 0 && selectedImage === "/placeholder.jpg") {
+      setSelectedImage(product.images[0].url);
+    }
+  }, [product, selectedImage]);
 
   if (!product) {
     return (
@@ -56,7 +96,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
   }
 
   // Stock logic
-  const isOutOfStock = selectedVariant.stock <= 0;
+  const isOutOfStock = !selectedVariant || selectedVariant.stock <= 0;
 
   const handleAddToCart = async () => {
     if (isOutOfStock) {
@@ -64,29 +104,24 @@ export default function ProductDetailClient({ productId, initialProduct }) {
       return;
     }
     
-    // Asal loading state shuru
     setIsAdding(true);
-    
     try {
-      // Context function call
+      // 🔑 FIX: Context ke `addToCart(variantId, stockAvailable)` ke mutabiq call kiya gaya hai
       await addToCart(selectedVariant.id, selectedVariant.stock);
     } catch (error) {
       console.error("Cart error:", error);
     } finally {
-      // Complete hote hi button reset
       setIsAdding(false);
     }
   };
 
   return (
-    // Main layout with background #f5f3ed
     <main className="min-h-screen py-8 lg:py-16 [font-family:'Plus_Jakarta_Sans',sans-serif]" style={{ backgroundColor: '#f5f3ed' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
           
           {/* --- LEFT: Image Section --- */}
           <div className="flex flex-col gap-4">
-            {/* Squared, sharp corners */}
             <div className="w-full aspect-[4/5] bg-white/40 overflow-hidden border" style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }}>
               <img src={selectedImage} alt={product.name} className="w-full h-full object-cover" />
             </div>
@@ -96,6 +131,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
               {product.images?.map((img) => (
                 <button 
                   key={img.id} 
+                  type="button"
                   onClick={() => setSelectedImage(img.url)}
                   className="flex-shrink-0 w-16 h-16 border overflow-hidden bg-white transition-all cursor-pointer"
                   style={{ 
@@ -123,7 +159,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
               
               {/* Price */}
               <p className="text-xl font-semibold mt-2" style={{ color: '#3a2e28' }}>
-                Rs. {Number(selectedVariant.price || 0).toLocaleString()}
+                Rs. {Number(selectedVariant?.price || 0).toLocaleString()}
               </p>
               
               {/* Stock Status Indicator */}
@@ -152,34 +188,62 @@ export default function ProductDetailClient({ productId, initialProduct }) {
             </p>
 
             {/* --- Sizes Selector --- */}
-            <div className="space-y-3">
-              <span className="text-[10px] uppercase tracking-widest opacity-70 font-semibold" style={{ color: '#3a2e28' }}>
-                Select Size
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {product.variants?.map((v) => {
-                  const isCurrentVariant = selectedVariant.id === v.id;
-                  const isVariantOutOfStock = v.stock <= 0;
-                  
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setSelectedVariant(v)}
-                      disabled={isVariantOutOfStock}
-                      className="px-4 py-2 text-xs font-medium border transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                      style={{
-                        backgroundColor: isCurrentVariant ? '#3a2e28' : 'rgba(255, 255, 255, 0.6)',
-                        borderColor: isCurrentVariant ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
-                        color: isCurrentVariant ? '#ffffff' : '#3a2e28'
-                      }}
-                    >
-                      {v.size}
-                    </button>
-                  );
-                })}
+            {allSizes.length > 0 && (
+              <div className="space-y-3">
+                <span className="text-[10px] uppercase tracking-widest opacity-70 font-semibold" style={{ color: '#3a2e28' }}>
+                  Select Size
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {allSizes.map((sz) => {
+                    const isSelected = selectedSize === sz;
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => setSelectedSize(sz)}
+                        className="px-4 py-2 text-xs font-medium border transition-all cursor-pointer"
+                        style={{
+                          backgroundColor: isSelected ? '#3a2e28' : 'rgba(255, 255, 255, 0.6)',
+                          borderColor: isSelected ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
+                          color: isSelected ? '#ffffff' : '#3a2e28'
+                        }}
+                      >
+                        {sz}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* --- Colors Selector (Dynamically Filtered by Size) --- */}
+            {availableColorsForSize.length > 0 && (
+              <div className="space-y-3">
+                <span className="text-[10px] uppercase tracking-widest opacity-70 font-semibold" style={{ color: '#3a2e28' }}>
+                  Color
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {availableColorsForSize.map((col) => {
+                    const isSelected = selectedColor === col;
+                    return (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => setSelectedColor(col)}
+                        className="px-5 py-2 rounded-full text-xs font-medium border transition-all cursor-pointer"
+                        style={{
+                          backgroundColor: isSelected ? '#3a2e28' : 'rgba(255, 255, 255, 0.6)',
+                          borderColor: isSelected ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
+                          color: isSelected ? '#ffffff' : '#3a2e28'
+                        }}
+                      >
+                        {col}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* --- Add to Cart Primary Button --- */}
             <div className="pt-4">

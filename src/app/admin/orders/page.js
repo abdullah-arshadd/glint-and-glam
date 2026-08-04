@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
-import { Eye, Clock, CheckCircle, Truck, AlertCircle, ChevronLeft, ChevronRight, XCircle, DollarSign, Image as ImageIcon } from 'lucide-react';
+import { Eye, Clock, CheckCircle, Truck, AlertCircle, ChevronLeft, ChevronRight, XCircle, DollarSign, Image as ImageIcon, MapPin, Package, ExternalLink, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminOrders() {
@@ -10,10 +10,13 @@ export default function AdminOrders() {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     
-    // 🌟 NEW: Pagination States
+    // Pagination States
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10); // Change this to show more items per page
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     
+    // Modal State for Full Order Details
+    const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
+
     // Modal states for Cancellation
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -62,8 +65,6 @@ export default function AdminOrders() {
             );
         }
         setFilteredOrders(result);
-        
-        // 🌟 Reset to page 1 whenever filters or search terms change
         setCurrentPage(1);
     }, [statusFilter, searchTerm, orders]);
 
@@ -190,7 +191,7 @@ export default function AdminOrders() {
         }
     };
 
-    // 🌟 PAGINATION MATH CALCULATION
+    // Pagination Calculation
     const indexOfLastOrder = currentPage * itemsPerPage;
     const indexOfFirstOrder = indexOfLastOrder - itemsPerPage;
     const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
@@ -272,23 +273,23 @@ export default function AdminOrders() {
                 ) : (
                     <>
                         <div className="flex-1 overflow-x-auto">
-                            <table className="w-full text-left border-collapse table-fixed min-w-[1100px]">
+                            <table className="w-full text-left border-collapse table-fixed min-w-[1350px]">
                                 <thead>
                                     <tr className="border-b border-gray-100 bg-gray-50/50 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
-                                        <th className="p-4 w-[140px]">Order ID</th>
+                                        <th className="p-4 w-[240px]">Full Order ID</th>
                                         <th className="p-4 w-auto">Customer</th>
-                                        <th className="p-4 w-[120px]">City</th>
-                                        <th className="p-4 w-[130px]">Amount</th>
-                                        <th className="p-4 w-[150px]">Payment Settlement</th>
+                                        <th className="p-4 w-[100px]">City</th>
+                                        <th className="p-4 w-[110px]">Amount</th>
+                                        <th className="p-4 w-[140px]">Payment Settlement</th>
                                         <th className="p-4 w-[110px]">Logistics Status</th>
-                                        <th className="p-4 text-right w-[140px]">Actions</th>
+                                        <th className="p-4 w-[120px]">View Order</th>
+                                        <th className="p-4 text-right w-[130px]">Status Update</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-xs divide-y divide-gray-50">
-                                    {/* 🌟 Using currentOrders instead of filteredOrders mapped array */}
                                     {currentOrders.map((order) => (
                                         <tr key={order.id} className="hover:bg-gray-50/40 transition-colors">
-                                            <td className="p-4 font-semibold text-[#2D2524] truncate">
+                                            <td className="p-4 font-semibold text-[#2D2524] font-mono text-[11px] whitespace-nowrap overflow-x-auto">
                                                 #{order.id}
                                             </td>
                                             <td className="p-4">
@@ -318,7 +319,7 @@ export default function AdminOrders() {
                                                                 setCurrentProof({ image: order.paymentProof, orderId: order.id });
                                                                 setIsProofModalOpen(true);
                                                             }}
-                                                            className="flex items-center gap-1.5 text-[10px] text-blue-600 hover:text-blue-800 font-semibold uppercase tracking-wider transition-colors"
+                                                            className="flex items-center gap-1.5 text-[10px] text-blue-600 hover:text-blue-800 font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                                                         >
                                                             <ImageIcon size={12} /> View Proof
                                                         </button>
@@ -331,11 +332,22 @@ export default function AdminOrders() {
                                                     {order.status}
                                                 </span>
                                             </td>
+
+                                            {/* VIEW ORDER DETAILS BUTTON */}
+                                            <td className="p-4">
+                                                <button
+                                                    onClick={() => setSelectedOrderDetails(order)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#3a2e28] text-white rounded-xs text-[10px] uppercase tracking-wider font-semibold hover:bg-[#BD977A] transition-colors cursor-pointer"
+                                                >
+                                                    <Eye size={12} /> View Items
+                                                </button>
+                                            </td>
+
                                             <td className="p-4 text-right">
                                                 <select
                                                     value={order.status}
                                                     onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                                                    className="border border-gray-200 p-1.5 text-[10px] bg-white text-gray-600 outline-none focus:border-[#DB93B0] cursor-pointer rounded-xs w-full max-w-[120px]"
+                                                    className="border border-gray-200 p-1.5 text-[10px] bg-white text-gray-600 outline-none focus:border-[#DB93B0] cursor-pointer rounded-xs w-full max-w-[110px]"
                                                 >
                                                     <option value="PENDING">Pending</option>
                                                     <option value="SHIPPED">Shipped</option>
@@ -349,7 +361,7 @@ export default function AdminOrders() {
                             </table>
                         </div>
 
-                        {/* 🌟 PAGINATION CONTROLS */}
+                        {/* PAGINATION CONTROLS */}
                         {totalPages > 0 && (
                             <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/30 px-4 py-3 sm:px-6">
                                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
@@ -359,14 +371,13 @@ export default function AdminOrders() {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        {/* Items Per Page Selector */}
                                         <div className="flex items-center gap-2 text-[10px] uppercase font-medium text-gray-500 tracking-wider">
                                             Rows:
                                             <select 
                                                 value={itemsPerPage} 
                                                 onChange={(e) => {
                                                     setItemsPerPage(Number(e.target.value));
-                                                    setCurrentPage(1); // Reset to page 1 on changing quantity
+                                                    setCurrentPage(1);
                                                 }}
                                                 className="border border-gray-200 rounded-xs px-1.5 py-1 outline-none bg-white cursor-pointer"
                                             >
@@ -376,7 +387,6 @@ export default function AdminOrders() {
                                             </select>
                                         </div>
 
-                                        {/* Page Numbers Navigation */}
                                         <nav className="isolate inline-flex -space-x-px rounded-xs shadow-xs" aria-label="Pagination">
                                             <button
                                                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -399,7 +409,7 @@ export default function AdminOrders() {
                                     </div>
                                 </div>
                                 
-                                {/* Mobile Version Pagination */}
+                                {/* Mobile Pagination */}
                                 <div className="flex flex-1 items-center justify-between sm:hidden">
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -425,26 +435,134 @@ export default function AdminOrders() {
                 )}
             </div>
 
+            {/* VIEW FULL ORDER DETAILS MODAL */}
+            {selectedOrderDetails && (
+                <div className="fixed inset-0 bg-[#2D2524]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setSelectedOrderDetails(null)}>
+                    <div 
+                        className="bg-white w-full max-w-2xl shadow-2xl rounded-sm overflow-hidden flex flex-col max-h-[90vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-4 px-6 bg-[#3a2e28] text-white flex justify-between items-center">
+                            <div>
+                                <h3 className="text-base font-semibold [font-family:'Cormorant_Garamond',serif]">
+                                    Order Items & Details
+                                </h3>
+                                <p className="text-[10px] text-gray-300 font-mono break-all">Full Order ID: #{selectedOrderDetails.id}</p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedOrderDetails(null)}
+                                className="text-gray-300 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto space-y-6 text-xs text-gray-800">
+                            
+                            {/* Customer & Shipping Summary */}
+                            <div className="bg-gray-50/80 p-4 rounded-xs space-y-2">
+                                <h4 className="font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 text-[#3a2e28]">
+                                    <MapPin size={13} /> Customer & Shipping Info
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-gray-600">
+                                    <p><strong className="text-gray-900">Name:</strong> {selectedOrderDetails.fullName}</p>
+                                    <p><strong className="text-gray-900">Phone:</strong> {selectedOrderDetails.phone}</p>
+                                    <p><strong className="text-gray-900">City:</strong> {selectedOrderDetails.city}</p>
+                                    <p><strong className="text-gray-900">Payment Choice:</strong> {selectedOrderDetails.paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'Advance Bank Transfer'}</p>
+                                    <p className="col-span-1 sm:col-span-2"><strong className="text-gray-900">Delivery Address:</strong> {selectedOrderDetails.address}</p>
+                                    {selectedOrderDetails.notes && (
+                                        <p className="col-span-1 sm:col-span-2 italic text-gray-500">
+                                            <strong>Notes:</strong> "{selectedOrderDetails.notes}"
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Products List Block */}
+                            <div>
+                                <h4 className="font-bold uppercase tracking-wider text-[10px] mb-3 flex items-center gap-1.5 text-[#3a2e28]">
+                                    <Package size={13} /> Products Ordered ({selectedOrderDetails.items?.length || 0})
+                                </h4>
+                                
+                                <div className="divide-y divide-gray-100 bg-gray-50/40 rounded-xs overflow-hidden">
+                                    {selectedOrderDetails.items?.map((item) => {
+                                        const variant = item.variant;
+                                        const product = variant?.product;
+                                        
+                                        // 🖼️ Safe Multi-fallback for Cloud / Prisma Image URLs
+                                        const productImage = 
+                                            product?.images?.[0]?.url || 
+                                            variant?.product?.images?.[0]?.url || 
+                                            item.image || 
+                                            '/placeholder.jpg';
+
+                                        return (
+                                            <div key={item.id} className="p-3 flex items-center gap-3">
+                                                <img
+                                                    src={productImage}
+                                                    alt={product?.name || item.name || 'Item'}
+                                                    className="w-12 h-15 object-cover rounded-xs bg-gray-200 flex-shrink-0 border border-gray-100"
+                                                    onError={(e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = '/placeholder.jpg';
+                                                    }}
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <h5 className="font-semibold text-gray-900 text-xs truncate">
+                                                        {product?.name || item.name || 'Jewelry Item'}
+                                                    </h5>
+                                                    <div className="flex gap-2 text-[11px] text-gray-500 mt-0.5">
+                                                        {variant?.size && <span>Size: <strong className="text-gray-700">{variant.size}</strong></span>}
+                                                        {variant?.color && <span>• Color: <strong className="text-gray-700">{variant.color}</strong></span>}
+                                                    </div>
+                                                    <p className="text-[11px] text-gray-500 mt-0.5">
+                                                        Qty: {item.quantity} × Rs. {Number(item.price).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right font-bold text-gray-900 text-xs">
+                                                    Rs. {(Number(item.price) * item.quantity).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Modal Footer Summary */}
+                            <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                                <span className="font-semibold text-gray-600 uppercase tracking-wider text-[11px]">Total Amount</span>
+                                <span className="text-base font-bold text-[#3a2e28]">
+                                    Rs. {Number(selectedOrderDetails.totalAmount || selectedOrderDetails.total || 0).toLocaleString()} PKR
+                                </span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* PAYMENT PROOF IMAGE MODAL */}
             {isProofModalOpen && (
                 <div className="fixed inset-0 bg-[#2D2524]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" onClick={() => setIsProofModalOpen(false)}>
                     <div 
-                        className="bg-white w-full max-w-lg p-6 border border-gray-100 shadow-2xl rounded-sm transform transition-all flex flex-col max-h-[90vh]"
+                        className="bg-white w-full max-w-lg p-6 shadow-2xl rounded-sm transform transition-all flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()} 
                     >
-                        <div className="flex items-center justify-between border-b pb-4 mb-4">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
                             <div>
                                 <h3 className="text-lg font-semibold text-[#2D2524] [font-family:'Cormorant_Garamond',serif]">
                                     Payment Screenshot
                                 </h3>
-                                <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Order #{currentProof.orderId}</p>
+                                <p className="text-[10px] text-gray-500 font-mono tracking-widest mt-1">Order #{currentProof.orderId}</p>
                             </div>
-                            <button onClick={() => setIsProofModalOpen(false)} className="text-gray-400 hover:text-rose-600 transition-colors">
+                            <button onClick={() => setIsProofModalOpen(false)} className="text-gray-400 hover:text-rose-600 transition-colors cursor-pointer">
                                 <XCircle size={24} />
                             </button>
                         </div>
                         
-                        <div className="flex-1 overflow-auto flex justify-center bg-gray-50 border border-gray-100 p-2 rounded-xs">
+                        <div className="flex-1 overflow-auto flex justify-center bg-gray-50 p-2 rounded-xs">
                             <img 
                                 src={currentProof.image} 
                                 alt={`Proof for Order #${currentProof.orderId}`} 
@@ -455,7 +573,7 @@ export default function AdminOrders() {
                         <div className="mt-4 flex justify-end">
                             <button 
                                 onClick={() => setIsProofModalOpen(false)}
-                                className="px-5 py-2 bg-[#3a2e28] text-white font-medium tracking-wide uppercase text-[10px] hover:bg-[#BD977A] transition-colors rounded-xs"
+                                className="px-5 py-2 bg-[#3a2e28] text-white font-medium tracking-wide uppercase text-[10px] hover:bg-[#BD977A] transition-colors rounded-xs cursor-pointer"
                             >
                                 Close
                             </button>
@@ -467,7 +585,7 @@ export default function AdminOrders() {
             {/* CANCELLATION MODAL */}
             {isCancelModalOpen && (
                 <div className="fixed inset-0 bg-[#2D2524]/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-                    <div className="bg-white w-full max-w-md p-6 border border-gray-100 shadow-xl rounded-xs transform transition-all space-y-4">
+                    <div className="bg-white w-full max-w-md p-6 shadow-xl rounded-xs transform transition-all space-y-4">
                         <div className="flex items-center gap-2.5 text-rose-600">
                             <XCircle size={20} />
                             <h3 className="text-base font-semibold text-[#2D2524] [font-family:'Cormorant_Garamond',serif]">
@@ -502,14 +620,14 @@ export default function AdminOrders() {
                                         setIsCancelModalOpen(false);
                                         setSelectedOrderId(null);
                                     }}
-                                    className="px-4 py-2 border border-gray-200 text-gray-500 tracking-wide uppercase text-[10px] hover:bg-gray-50 rounded-xs"
+                                    className="px-4 py-2 border border-gray-200 text-gray-500 tracking-wide uppercase text-[10px] hover:bg-gray-50 rounded-xs cursor-pointer"
                                 >
                                     Abort
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingCancel}
-                                    className="px-4 py-2 bg-rose-600 text-white font-medium tracking-wide uppercase text-[10px] hover:bg-rose-700 disabled:opacity-50 rounded-xs"
+                                    className="px-4 py-2 bg-rose-600 text-white font-medium tracking-wide uppercase text-[10px] hover:bg-rose-700 disabled:opacity-50 rounded-xs cursor-pointer"
                                 >
                                     {submittingCancel ? 'Processing...' : 'Confirm Cancel'}
                                 </button>

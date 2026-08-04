@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
-// 📊 GET: Saare ACTIVE products variants aur images ke sath lane ke liye (With Featured Filter)
+// 📊 GET: Saare ACTIVE products variants aur images ke sath lane ke liye
 export async function GET(req) {
   try {
-    // 🔑 URL parameters read karne ke liye logic connect kiya
     const { searchParams } = new URL(req.url);
     const isFeaturedQuery = searchParams.get("featured") === "true";
 
-    // Base filters: Archived products ko hide rakhna hamesha
     let whereClause = {
       NOT: {
         name: {
@@ -17,7 +17,6 @@ export async function GET(req) {
       }
     };
 
-    // Agar URL me ?featured=true ho, toh filtration criteria me add kar do
     if (isFeaturedQuery) {
       whereClause.isFeatured = true;
     }
@@ -30,7 +29,7 @@ export async function GET(req) {
         category: true,
       },
       orderBy: {
-        createdAt: 'desc', // Taake naya product sab se upar aaye
+        createdAt: 'desc',
       }
     });
     
@@ -44,33 +43,65 @@ export async function GET(req) {
   }
 }
 
-// ➕ POST: Naya product create karne ke liye (With Featured Flag support)
+// ➕ POST: Naya product create karne ke liye (FORMDATA, LOCAL FILES & COLOR VARIANTS SUPPORT)
 export async function POST(req) {
   try {
-    const body = await req.json();
-    // 🔑 `isFeatured` ko body se destructure kiya
-    const { name, description, categoryId, images, variants, isFeatured } = body;
+    const formData = await req.formData();
+    
+    const name = formData.get('name');
+    const description = formData.get('description');
+    const categoryId = formData.get('categoryId');
+    const isFeatured = formData.get('isFeatured') === 'true';
+    
+    const variants = JSON.parse(formData.get('variants') || '[]');
+    const newImageFiles = formData.getAll('images');
+    
+    const newUploadedImages = [];
 
-    // Validation checks
+    // 🚀 Public uploads directory path
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    
+    try {
+      await mkdir(uploadDir, { recursive: true });
+    } catch (err) {}
+
+    // Files save karne ki execution loop
+    for (const file of newImageFiles) {
+      if (typeof file === 'object' && file !== null && 'arrayBuffer' in file) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        
+        const originalName = file.name || `img-${Date.now()}.png`;
+        const sanitizedName = originalName.replace(/[^a-zA-Z0-9.\-]/g, '_');
+        const uniqueFileName = `${Date.now()}-${sanitizedName}`;
+        
+        const filePath = path.join(uploadDir, uniqueFileName);
+        await writeFile(filePath, buffer);
+        
+        // Relative path for Database serving
+        newUploadedImages.push({ url: `/uploads/${uniqueFileName}` });
+      }
+    }
+
     if (!name || !description || !variants || variants.length === 0) {
       return NextResponse.json({ message: 'Required fields are missing' }, { status: 400 });
     }
 
-    // Agar categoryId empty string "" ho ya whitespace ho, toh usko explicit NULL assign karo
-    const cleanCategoryId = categoryId && categoryId.trim() !== "" ? String(categoryId) : null;
+    const cleanCategoryId = categoryId && String(categoryId).trim() !== "" ? String(categoryId) : null;
 
     const newProduct = await prisma.product.create({
       data: {
-        name,
-        description,
+        name: String(name),
+        description: String(description),
         categoryId: cleanCategoryId, 
-        isFeatured: Boolean(isFeatured), // 🔥 Admin UI checkbox value assignment secure dynamic filter
+        isFeatured: Boolean(isFeatured),
         images: {
-          create: images && images.length > 0 ? images.filter(img => img.url && img.url.trim() !== "").map((img) => ({ url: img.url })) : [],
+          create: newUploadedImages,
         },
         variants: {
           create: variants.map((v) => ({
-            size: String(v.size),
+            size: String(v.size || ''),
+            color: String(v.color || ''), // 🔑 Mapped Color attribute field
             price: parseFloat(v.price),
             stock: parseInt(v.stock) || 0,
           })),

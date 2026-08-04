@@ -11,16 +11,23 @@ async function sendOrderConfirmationEmails({ order, items, customerEmail, fullNa
     // Notification Subject ke liye short 6-character code
     const shortOrderId = order.id.slice(-6).toUpperCase();
 
-    // Generate Order Items HTML Table
+    // Generate Order Items HTML Table (with Size & Color)
     const itemsListHtml = items.map(item => {
       const itemName = item.name || item.product?.name || item.variant?.product?.name || 'Fine Jewelry Piece';
       const itemPrice = Number(item.variant?.price || item.price || 0);
       const itemQty = Number(item.quantity || 1);
+      const itemSize = item.variant?.size || item.size || null;
+      const itemColor = item.variant?.color || item.color || null;
+
+      let variantDetails = [];
+      if (itemSize && itemSize !== 'N/A') variantDetails.push(`Size: ${itemSize}`);
+      if (itemColor) variantDetails.push(`Color: ${itemColor}`);
+      const variantMetaText = variantDetails.length > 0 ? `(${variantDetails.join(' | ')})` : '';
 
       return `
         <tr style="border-bottom: 1px solid #eeeeee;">
           <td style="padding: 10px 0; font-size: 13px; color: #3a2e28;">
-            <strong>${itemName}</strong><br/>
+            <strong>${itemName}</strong> <span style="font-size: 11px; color: #666666;">${variantMetaText}</span><br/>
             <span style="font-size: 11px; color: #888888;">Qty: ${itemQty}</span>
           </td>
           <td style="padding: 10px 0; font-size: 13px; color: #3a2e28; text-align: right;">
@@ -30,15 +37,15 @@ async function sendOrderConfirmationEmails({ order, items, customerEmail, fullNa
       `;
     }).join('');
 
-    // 📩 1. ADMIN NOTIFICATION EMAIL (to glintandglam.pk@gmail.com)
+    // 📩 1. ADMIN NOTIFICATION EMAIL
     const adminEmailPromise = resend.emails.send({
       from: 'Glint & Glam Store <orders@glintandglam.pk>',
       to: ['glintandglam.pk@gmail.com'],
-      subject: `🚨 NEW ORDER RECEIVED! #${shortOrderId} - Rs. ${Number(total).toLocaleString()}`, // Short ID for notification preview
+      subject: `🚨 NEW ORDER RECEIVED! #${shortOrderId} - Rs. ${Number(total).toLocaleString()}`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: #222222; background-color: #ffffff;">
           <h2 style="color: #3a2e28; border-bottom: 2px solid #bd977a; padding-bottom: 8px;">🎉 New Order Received</h2>
-          <p><strong>Order ID:</strong> #${order.id}</p> <!-- Full Order ID inside email body -->
+          <p><strong>Order ID:</strong> #${order.id}</p>
           <p><strong>Customer Name:</strong> ${fullName}</p>
           <p><strong>Email:</strong> ${customerEmail || 'Not provided (Guest)'}</p>
           <p><strong>Phone:</strong> ${phone}</p>
@@ -59,13 +66,13 @@ async function sendOrderConfirmationEmails({ order, items, customerEmail, fullNa
       `
     });
 
-    // 📩 2. CUSTOMER CONFIRMATION EMAIL (If Email exists)
+    // 📩 2. CUSTOMER CONFIRMATION EMAIL
     let customerEmailPromise = Promise.resolve();
     if (customerEmail) {
       customerEmailPromise = resend.emails.send({
         from: 'Glint & Glam <orders@glintandglam.pk>',
         to: [customerEmail],
-        subject: `Order Confirmed - #${shortOrderId} | Glint & Glam`, // Short ID in Subject Line
+        subject: `Order Confirmed - #${shortOrderId} | Glint & Glam`,
         html: `
           <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f7f2e6; padding: 30px 10px; color: #3a2e28;">
             <div style="max-width: 550px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px; border: 1px solid rgba(58,46,40,0.1);">
@@ -79,7 +86,7 @@ async function sendOrderConfirmationEmails({ order, items, customerEmail, fullNa
               <p style="font-size: 13px; color: #555555; line-height: 1.5;">Thank you for your order! We are preparing your exquisite jewelry pieces with care. Here is your order summary:</p>
               
               <div style="background-color: #fcfbfa; padding: 15px; border-radius: 6px; margin: 20px 0; border: 1px solid #f0e8d6;">
-                <p style="margin: 0; font-size: 12px; color: #888888;">Order ID: <strong style="color: #3a2e28;">#${order.id}</strong></p> <!-- Full Order ID inside email body -->
+                <p style="margin: 0; font-size: 12px; color: #888888;">Order ID: <strong style="color: #3a2e28;">#${order.id}</strong></p>
                 <p style="margin: 5px 0 0 0; font-size: 12px; color: #888888;">Payment Method: <strong style="color: #3a2e28;">${paymentMethod === 'COD' ? 'Cash on Delivery (COD)' : 'Advance Bank Transfer'}</strong></p>
               </div>
 
@@ -118,7 +125,7 @@ async function sendOrderConfirmationEmails({ order, items, customerEmail, fullNa
   }
 }
 
-// 📊 1. GET: Admin panel ke liye saare orders fetch karne ka method
+// 📊 1. GET: Admin panel ke liye saare orders fetch karne ka method (Includes Product Images)
 export async function GET() {
   try {
     const orders = await prisma.order.findMany({
@@ -127,7 +134,11 @@ export async function GET() {
           include: {
             variant: {
               include: {
-                product: true
+                product: {
+                  include: {
+                    images: true // 🖼️ Image relation included for modal rendering
+                  }
+                }
               }
             }
           }
@@ -230,7 +241,6 @@ export async function POST(req) {
         return order;
       });
 
-      // 🌟 Send Emails to Admin & Customer asynchronously
       sendOrderConfirmationEmails({
         order: newOrder, items, customerEmail, fullName, phone, city, address, total, paymentMethod: 'COD', paymentProof
       });
@@ -267,7 +277,6 @@ export async function POST(req) {
         return order;
       });
 
-      // 🌟 Send Emails to Admin & Customer asynchronously
       sendOrderConfirmationEmails({
         order: newOrder, items, customerEmail, fullName, phone, city, address, total, paymentMethod: 'BANK', paymentProof
       });

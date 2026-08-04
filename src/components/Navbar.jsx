@@ -45,7 +45,8 @@ export default function Navbar() {
     const [openCategories, setOpenCategories] = useState({});
     const [openSubCategories, setOpenSubCategories] = useState({});
 
-    const { cartCount } = useCart();
+    // 🔑 Destructured toggleCart from CartContext
+    const { cartCount, toggleCart } = useCart();
 
     const INSTAGRAM_URL = "https://www.instagram.com/glintandglam.pk?igsh=dXdpMjU0ZnN1bXc1";
 
@@ -167,7 +168,7 @@ export default function Navbar() {
                                 <UserDropdown />
                             </div>
 
-                            {/* 🌟 INSTAGRAM LINK NODE (DESKTOP ONLY - HIDDEN ON MOBILE NAVBAR) */}
+                            {/* 🌟 INSTAGRAM LINK NODE (DESKTOP ONLY) */}
                             <a 
                                 href={INSTAGRAM_URL} 
                                 target="_blank" 
@@ -178,8 +179,13 @@ export default function Navbar() {
                                 <InstagramIcon size={18} />
                             </a>
 
-                            {/* CART NODE */}
-                            <Link href="/cart" className="nav-icon-item relative p-1.5 block">
+                            {/* 🛒 CART NODE (Directly triggers side-over CartDrawer) */}
+                            <button 
+                                type="button"
+                                onClick={toggleCart} 
+                                className="nav-icon-item relative p-1.5 block cursor-pointer bg-transparent border-none outline-none"
+                                aria-label="Open Shopping Cart Drawer"
+                            >
                                 <ShoppingBag size={18} strokeWidth={1.5} />
                                 {cartCount > 0 && (
                                     <span
@@ -189,7 +195,7 @@ export default function Navbar() {
                                         {cartCount}
                                     </span>
                                 )}
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 </div>

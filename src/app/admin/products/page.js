@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Package, Plus, Edit2, Trash2, X, Trash, Star, Loader2 } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, X, Trash, Star, Loader2, Upload, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,6 +11,7 @@ export default function AdminProducts() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [uploadingIndex, setUploadingIndex] = useState(null);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,10 +29,12 @@ export default function AdminProducts() {
   const [selectedSubId, setSelectedSubId] = useState('');
   const [selectedChildId, setSelectedChildId] = useState('');
   
+  // 🎨 Size, Color, Price, Stock k sath Variant structure
   const createEmptyVariant = () => ({
     feId: `fe-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`,
     id: undefined, 
     size: '',
+    color: '',
     price: '',
     stock: ''
   });
@@ -131,9 +134,10 @@ export default function AdminProducts() {
         ? product.variants.map(v => ({ 
             feId: `fe-${v.id || Math.random().toString(36).substr(2, 9)}`,
             id: v.id, 
-            size: v.size, 
-            price: v.price.toString(), 
-            stock: v.stock.toString() 
+            size: v.size || '', 
+            color: v.color || '',
+            price: v.price ? v.price.toString() : '', 
+            stock: v.stock !== undefined ? v.stock.toString() : '' 
           })) 
         : [createEmptyVariant()]
     );
@@ -186,6 +190,39 @@ export default function AdminProducts() {
     setImages(updated);
   };
 
+  // 🌟 CLOUDINARY FILE UPLOAD HANDLER
+  const handleFileUpload = async (index, file) => {
+    if (!file) return;
+
+    setUploadingIndex(index);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          updateImage(index, data.url);
+          toast.success("Image uploaded to Cloudinary!");
+        } else {
+          toast.error("Upload failed: No URL returned");
+        }
+      } else {
+        toast.error("Failed to upload image.");
+      }
+    } catch (error) {
+      console.error("Image upload error:", error);
+      toast.error("Something went wrong during image upload.");
+    } finally {
+      setUploadingIndex(null);
+    }
+  };
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
 
@@ -195,17 +232,20 @@ export default function AdminProducts() {
     }
 
     const filteredImages = images.filter(img => img.url && img.url.trim() !== '');
+    
+    // 🎨 Color Attribute mapping inside Variant Payload
     const filteredVariants = variants
-      .filter(v => v.size && v.price && v.stock)
+      .filter(v => (v.size || v.color) && v.price && v.stock)
       .map(v => ({
         id: v.id || undefined, 
-        size: String(v.size),
+        size: String(v.size || 'Standard'),
+        color: String(v.color || ''),
         price: Number(v.price),
         stock: Number(v.stock)
       }));
 
     if (filteredVariants.length === 0) {
-      toast.error("At least one valid size variant configuration is required.");
+      toast.error("At least one valid size/color variant configuration is required.");
       return;
     }
 
@@ -403,7 +443,8 @@ export default function AdminProducts() {
           <AnimatePresence mode="popLayout">
             {filteredProducts.map((prod) => {
               const totalStock = prod.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
-              const sizeList = prod.variants?.map(v => v.size).join(', ') || 'N/A';
+              const sizeList = Array.from(new Set(prod.variants?.map(v => v.size).filter(Boolean))).join(', ') || 'N/A';
+              const colorList = Array.from(new Set(prod.variants?.map(v => v.color).filter(Boolean))).join(', ') || 'N/A';
               const basePrice = prod.variants?.[0]?.price || 0;
               const isLowStock = totalStock <= 5;
               const isDeleting = deletingId === prod.id;
@@ -421,7 +462,6 @@ export default function AdminProducts() {
                   className="bg-white border border-gray-100 p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:gap-5 items-start shadow-xs hover:border-[#DB93B0]/40 group relative"
                   style={{ opacity: isDeleting ? 0.5 : 1, pointerEvents: isDeleting ? 'none' : 'auto' }}
                 >
-                  {/* Image & Main Flex wrapper */}
                   <div className="flex flex-row gap-4 items-start w-full min-w-0">
                     <div className="w-20 h-24 sm:w-24 sm:h-28 bg-[#FAF9F6] flex-shrink-0 border border-gray-100 overflow-hidden relative">
                       {prod.images?.[0]?.url ? (
@@ -449,7 +489,6 @@ export default function AdminProducts() {
                       )}
                     </div>
 
-                    {/* Content Section */}
                     <div className="flex-1 min-w-0 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-1.5 min-w-0">
@@ -463,7 +502,6 @@ export default function AdminProducts() {
                           )}
                         </div>
 
-                        {/* Top-Right Action Buttons for Mobile View */}
                         <div className="flex sm:hidden items-center gap-1 flex-shrink-0">
                           <button 
                             type="button"
@@ -487,9 +525,11 @@ export default function AdminProducts() {
                         {prod.description || 'No description added'}
                       </p>
                       
-                      {/* Responsive Badges */}
                       <div className="pt-1 flex flex-wrap gap-1.5 text-[10px] font-medium tracking-wide">
                         <span className="px-2.5 py-1 bg-[#FAF9F6] border border-gray-200/60 text-gray-600">Sizes: {sizeList}</span>
+                        {colorList !== 'N/A' && (
+                          <span className="px-2.5 py-1 bg-[#FAF9F6] border border-gray-200/60 text-gray-600">Colors: {colorList}</span>
+                        )}
                         <span className="px-2.5 py-1 bg-[#FAF9F6] border border-gray-200/60 text-[#2D2524] font-semibold">Rs. {Number(basePrice).toLocaleString()}</span>
                         <motion.span
                           animate={isLowStock ? { opacity: [1, 0.55, 1] } : {}}
@@ -502,7 +542,6 @@ export default function AdminProducts() {
                     </div>
                   </div>
 
-                  {/* Desktop Action Buttons */}
                   <div className="hidden sm:flex items-center gap-2 self-start ml-auto">
                     <motion.button 
                       type="button"
@@ -592,7 +631,6 @@ export default function AdminProducts() {
                   <div className="space-y-4 border p-3.5 sm:p-4 bg-gray-50/30 border-gray-200/70">
                     <span className="font-semibold uppercase tracking-wider text-[10px] text-[#DB93B0]">Category Architecture Linkage</span>
                     
-                    {/* Dropdown 1: Main Categories */}
                     <div className="space-y-1.5 mt-2">
                       <label className="text-[10px] uppercase font-medium text-gray-400">Main Category *</label>
                       <select 
@@ -607,7 +645,6 @@ export default function AdminProducts() {
                       </select>
                     </div>
 
-                    {/* Dropdown 2: Dynamic Sub Categories */}
                     <AnimatePresence>
                       {subCategoryOptions.length > 0 && (
                         <motion.div
@@ -632,7 +669,6 @@ export default function AdminProducts() {
                       )}
                     </AnimatePresence>
 
-                    {/* Dropdown 3: Deepest Nested Children Map */}
                     <AnimatePresence>
                       {childCategoryOptions.length > 0 && (
                         <motion.div
@@ -697,10 +733,10 @@ export default function AdminProducts() {
                   </motion.div>
                 </div>
 
-                {/* Images Block */}
+                {/* IMAGES BLOCK WITH FILE UPLOAD BUTTON & CLOUDINARY INTEGRATION */}
                 <div className="space-y-3 border-t border-gray-100 pt-5">
                   <div className="flex justify-between items-center">
-                    <label className="font-semibold uppercase tracking-wider text-[10px] text-gray-500">Image Asset Endpoints</label>
+                    <label className="font-semibold uppercase tracking-wider text-[10px] text-gray-500">Product Images *</label>
                     <motion.button
                       type="button"
                       onClick={addImageField}
@@ -708,11 +744,11 @@ export default function AdminProducts() {
                       whileTap={{ scale: 0.95 }}
                       className="text-[10px] text-[#DB93B0] font-bold flex items-center gap-1 hover:text-[#b87490] cursor-pointer"
                     >
-                      <Plus size={12} strokeWidth={2.5} /> Add URL Field
+                      <Plus size={12} strokeWidth={2.5} /> Add Image Slot
                     </motion.button>
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <AnimatePresence>
                       {images.map((img, index) => (
                         <motion.div
@@ -721,33 +757,74 @@ export default function AdminProducts() {
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 10, height: 0 }}
                           transition={{ duration: 0.25 }}
-                          className="flex gap-2 items-center"
+                          className="flex flex-col gap-2 p-3 bg-gray-50/50 border border-gray-200/60 rounded-none"
                         >
-                          <input 
-                            type="url" 
-                            value={img.url} 
-                            onChange={(e) => updateImage(index, e.target.value)}
-                            placeholder="https://images.unsplash.com/..."
-                            className="w-full border border-gray-200 p-2.5 text-xs outline-none focus:border-[#DB93B0] bg-gray-50/20"
-                          />
-                          {images.length > 1 && (
-                            <motion.button
-                              type="button"
-                              onClick={() => removeImageField(index)}
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="p-2.5 text-red-400 border border-gray-200 hover:border-red-200 hover:bg-red-50/50 cursor-pointer"
-                            >
-                              <Trash size={14} />
-                            </motion.button>
-                          )}
+                          <div className="flex gap-2 items-center">
+                            {/* Preview Thumbnail */}
+                            <div className="w-12 h-12 bg-gray-100 border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                              {img.url ? (
+                                <img src={img.url} alt="preview" className="w-full h-full object-cover" />
+                              ) : (
+                                <ImageIcon size={18} className="text-gray-300" />
+                              )}
+                            </div>
+
+                            {/* URL Text Input */}
+                            <input 
+                              type="url" 
+                              value={img.url} 
+                              onChange={(e) => updateImage(index, e.target.value)}
+                              placeholder="Image URL or upload file below..."
+                              className="w-full border border-gray-200 p-2.5 text-xs outline-none focus:border-[#DB93B0] bg-white"
+                            />
+
+                            {/* Delete Slot Button */}
+                            {images.length > 1 && (
+                              <motion.button
+                                type="button"
+                                onClick={() => removeImageField(index)}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-2.5 text-red-400 border border-gray-200 hover:border-red-200 hover:bg-red-50/50 cursor-pointer bg-white"
+                              >
+                                <Trash size={14} />
+                              </motion.button>
+                            )}
+                          </div>
+
+                          {/* Direct File Upload to Cloudinary */}
+                          <div className="flex items-center gap-2 pt-1">
+                            <label className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider bg-[#2D2524] text-white px-3 py-1.5 hover:bg-[#4A3E3D] transition-colors cursor-pointer w-full sm:w-auto">
+                              {uploadingIndex === index ? (
+                                <>
+                                  <Loader2 size={12} className="animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload size={12} />
+                                  Upload Local Image
+                                </>
+                              )}
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={(e) => handleFileUpload(index, e.target.files[0])}
+                                disabled={uploadingIndex === index}
+                                className="hidden"
+                              />
+                            </label>
+                            <span className="text-[10px] text-gray-400 hidden sm:inline">
+                              Uploads directly to Cloudinary CDN
+                            </span>
+                          </div>
                         </motion.div>
                       ))}
                     </AnimatePresence>
                   </div>
                 </div>
 
-                {/* Variant Matrix */}
+                {/* 🎨 VARIANT MATRIX WITH SIZE AND COLOR INPUTS */}
                 <div className="space-y-3 border-t border-gray-100 pt-5">
                   <div className="flex justify-between items-center">
                     <label className="font-semibold uppercase tracking-wider text-[10px] text-gray-500">Stock Variant Matrix *</label>
@@ -773,37 +850,54 @@ export default function AdminProducts() {
                           transition={{ duration: 0.25 }}
                           className="flex flex-wrap sm:flex-nowrap gap-2 bg-[#FAF9F6] p-2.5 sm:p-3 border border-gray-200/60 items-center"
                         >
-                          <div className="w-[30%] sm:w-1/4">
+                          {/* Size Field */}
+                          <div className="w-[23%] sm:w-1/5">
                             <input 
                               type="text" 
                               placeholder="Size" 
                               value={v.size}
                               onChange={(e) => updateVariant(v.feId, 'size', e.target.value)}
-                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-center"
-                              required
+                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-center text-xs"
                             />
                           </div>
-                          <div className="w-[36%] sm:w-3/8">
+
+                          {/* 🎨 Color Field */}
+                          <div className="w-[27%] sm:w-1/4">
+                            <input 
+                              type="text" 
+                              placeholder="Color (e.g. Gold)" 
+                              value={v.color}
+                              onChange={(e) => updateVariant(v.feId, 'color', e.target.value)}
+                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs"
+                            />
+                          </div>
+
+                          {/* Price Field */}
+                          <div className="w-[24%] sm:w-1/4">
                             <input 
                               type="number" 
                               placeholder="Price" 
                               value={v.price}
                               onChange={(e) => updateVariant(v.feId, 'price', e.target.value)}
-                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0]"
+                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs"
                               required
                             />
                           </div>
-                          <div className="w-[22%] sm:w-1/4">
+
+                          {/* Stock Field */}
+                          <div className="w-[18%] sm:w-1/5">
                             <input 
                               type="number" 
                               placeholder="Stock" 
                               value={v.stock}
                               onChange={(e) => updateVariant(v.feId, 'stock', e.target.value)}
-                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0]"
+                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs"
                               required
                             />
                           </div>
-                          <div className="w-[5%] sm:w-[10%] flex justify-center ml-auto">
+
+                          {/* Remove Variant Button */}
+                          <div className="w-[5%] sm:w-[8%] flex justify-center ml-auto">
                             {variants.length > 1 && (
                               <motion.button 
                                 type="button" 

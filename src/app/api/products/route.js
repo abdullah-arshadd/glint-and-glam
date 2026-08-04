@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 
 // 📊 GET: Saare ACTIVE products variants aur images ke sath lane ke liye
 export async function GET(req) {
@@ -43,45 +41,12 @@ export async function GET(req) {
   }
 }
 
-// ➕ POST: Naya product create karne ke liye (FORMDATA, LOCAL FILES & COLOR VARIANTS SUPPORT)
+// ➕ POST: Naya product create karne ke liye (JSON PAYLOAD & CLOUDINARY + COLOR/SIZE VARIANTS SUPPORT)
 export async function POST(req) {
   try {
-    const formData = await req.formData();
-    
-    const name = formData.get('name');
-    const description = formData.get('description');
-    const categoryId = formData.get('categoryId');
-    const isFeatured = formData.get('isFeatured') === 'true';
-    
-    const variants = JSON.parse(formData.get('variants') || '[]');
-    const newImageFiles = formData.getAll('images');
-    
-    const newUploadedImages = [];
-
-    // 🚀 Public uploads directory path
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch (err) {}
-
-    // Files save karne ki execution loop
-    for (const file of newImageFiles) {
-      if (typeof file === 'object' && file !== null && 'arrayBuffer' in file) {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        
-        const originalName = file.name || `img-${Date.now()}.png`;
-        const sanitizedName = originalName.replace(/[^a-zA-Z0-9.\-]/g, '_');
-        const uniqueFileName = `${Date.now()}-${sanitizedName}`;
-        
-        const filePath = path.join(uploadDir, uniqueFileName);
-        await writeFile(filePath, buffer);
-        
-        // Relative path for Database serving
-        newUploadedImages.push({ url: `/uploads/${uniqueFileName}` });
-      }
-    }
+    // 🌟 Correct Parsing: Read JSON payload sent from frontend
+    const body = await req.json();
+    const { name, description, categoryId, images, variants, isFeatured } = body;
 
     if (!name || !description || !variants || variants.length === 0) {
       return NextResponse.json({ message: 'Required fields are missing' }, { status: 400 });
@@ -96,7 +61,9 @@ export async function POST(req) {
         categoryId: cleanCategoryId, 
         isFeatured: Boolean(isFeatured),
         images: {
-          create: newUploadedImages,
+          create: (images || []).map((img) => ({
+            url: img.url
+          })),
         },
         variants: {
           create: variants.map((v) => ({

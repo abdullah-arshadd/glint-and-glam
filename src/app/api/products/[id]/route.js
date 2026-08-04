@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 
 // 🔍 1. GET: Single product details fetch karne ka handler
 export async function GET(req, { params }) {
@@ -29,82 +27,59 @@ export async function GET(req, { params }) {
   }
 }
 
-// 🔄 2. PATCH: Product update handler (UPGRADED WITH COLOR & SIZE VARIANTS)
+// 🔄 2. PATCH: Product update handler (JSON Parsing & Cloudinary / Color Compatible)
 export async function PATCH(req, { params }) {
   try {
     const { id } = await params;
-    
-    // Parse FormData from client
-    const formData = await req.formData();
-    
-    const name = formData.get('name');
-    const description = formData.get('description');
-    const categoryId = formData.get('categoryId');
-    const isFeatured = formData.get('isFeatured') === 'true';
-    
-    const variants = JSON.parse(formData.get('variants') || '[]');
-    const existingImages = JSON.parse(formData.get('existingImages') || '[]');
-    
-    const newImageFiles = formData.getAll('images');
-    const newUploadedImages = [];
+    const targetId = String(id);
 
-    // Local Disk Path Configuration
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch (err) {}
+    // Read JSON payload sent from frontend
+    const body = await req.json();
+    const { name, description, categoryId, images, variants, isFeatured } = body;
 
-    // Process new local binary image files
-    for (const file of newImageFiles) {
-      if (typeof file === 'object' && file !== null && 'arrayBuffer' in file) {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        
-        const originalName = file.name || `edit-img-${Date.now()}.png`;
-        const sanitizedName = originalName.replace(/[^a-zA-Z0-9.\-]/g, '_');
-        const uniqueFileName = `${Date.now()}-${sanitizedName}`;
-        
-        const filePath = path.join(uploadDir, uniqueFileName);
-        await writeFile(filePath, buffer);
-        
-        newUploadedImages.push({ url: `/uploads/${uniqueFileName}` });
-      }
+    if (!name || !description || !variants || variants.length === 0) {
+      return NextResponse.json(
+        { message: 'Missing required product metrics' },
+        { status: 400 }
+      );
     }
-
-    // Merge kept existing images with newly saved files
-    const finalImagesToSave = [...existingImages, ...newUploadedImages];
 
     const updatedProduct = await prisma.$transaction(async (tx) => {
       // 1. Core Product Record Update
       const product = await tx.product.update({
-        where: { id: String(id) },
+        where: { id: targetId },
         data: {
           name: String(name),
           description: String(description),
           categoryId: categoryId && String(categoryId).trim() !== "" ? String(categoryId) : null,
-          isFeatured: Boolean(isFeatured), 
-        }
+          isFeatured: Boolean(isFeatured),
+        },
       });
 
       // 2. Refresh Product Images Mapping
-      await tx.productImage.deleteMany({ where: { productId: String(id) } });
-      if (finalImagesToSave.length > 0) {
+      await tx.productImage.deleteMany({ where: { productId: targetId } });
+      if (images && images.length > 0) {
         await tx.productImage.createMany({
-          data: finalImagesToSave.map(img => ({ url: img.url, productId: String(id) }))
+          data: images.map((img) => ({
+            url: img.url,
+            productId: targetId,
+          })),
         });
       }
 
       // 3. Safe Variant Sync (Supports both Size & Color)
       if (variants) {
-        const incomingVariantIds = variants.filter(v => v.id).map(v => String(v.id));
+        const incomingVariantIds = variants
+          .filter((v) => v.id)
+          .map((v) => String(v.id));
 
+        // Delete variants that are no longer present (and not locked in orders)
         await tx.productVariant.deleteMany({
           where: {
-            productId: String(id),
+            productId: targetId,
             id: { notIn: incomingVariantIds },
-            orderItems: { none: {} } // Order safety guard
-          }
+            orderItems: { none: {} }, // Order safety guard
+          },
         });
 
         for (const v of variants) {
@@ -113,20 +88,20 @@ export async function PATCH(req, { params }) {
               where: { id: String(v.id) },
               data: {
                 size: String(v.size || ''),
-                color: String(v.color || ''), // Mapped Color field
+                color: String(v.color || ''),
                 price: parseFloat(v.price),
                 stock: parseInt(v.stock) || 0,
-              }
+              },
             });
           } else {
             await tx.productVariant.create({
               data: {
                 size: String(v.size || ''),
-                color: String(v.color || ''), // Mapped Color field
+                color: String(v.color || ''),
                 price: parseFloat(v.price),
                 stock: parseInt(v.stock) || 0,
-                productId: String(id)
-              }
+                productId: targetId,
+              },
             });
           }
         }
@@ -138,7 +113,10 @@ export async function PATCH(req, { params }) {
     return NextResponse.json({ success: true, product: updatedProduct }, { status: 200 });
   } catch (error) {
     console.error("❌ CRITICAL EDIT ERROR:", error);
-    return NextResponse.json({ message: 'Failed to update product', error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Failed to update product', error: error.message },
+      { status: 500 }
+    );
   }
 }
 
@@ -159,45 +137,50 @@ export async function DELETE(req, { params }) {
 
     const hasBeenOrdered = await prisma.orderItem.findFirst({
       where: {
-        variant: { productId: targetId }
-      }
+        variant: { productId: targetId },
+      },
     });
 
     if (hasBeenOrdered) {
       await prisma.$transaction([
         prisma.product.update({
           where: { id: targetId },
-          data: { name: `${targetId}__ARCHIVED` }
+          data: { name: `${targetId}__ARCHIVED` },
         }),
         prisma.productVariant.updateMany({
           where: { productId: targetId },
-          data: { stock: 0 }
+          data: { stock: 0 },
         }),
         prisma.cartItem.deleteMany({
-          where: { variant: { productId: targetId } }
-        })
+          where: { variant: { productId: targetId } },
+        }),
       ]);
 
-      return NextResponse.json({ 
-        success: true, 
-        message: "Product safely archived due to order locks." 
-      }, { status: 200 });
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Product safely archived due to order locks.",
+        },
+        { status: 200 }
+      );
     }
 
     await prisma.$transaction([
       prisma.cartItem.deleteMany({ where: { variant: { productId: targetId } } }),
       prisma.productImage.deleteMany({ where: { productId: targetId } }),
       prisma.productVariant.deleteMany({ where: { productId: targetId } }),
-      prisma.product.delete({ where: { id: targetId } })
+      prisma.product.delete({ where: { id: targetId } }),
     ]);
 
     return NextResponse.json({ success: true, message: "Product completely deleted." }, { status: 200 });
-
   } catch (error) {
     console.error("❌ CRITICAL CORE ENGINE DELETE ERROR:", error);
-    return NextResponse.json({ 
-      message: 'Failed to execute delete transaction', 
-      error: error.message 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        message: 'Failed to execute delete transaction',
+        error: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

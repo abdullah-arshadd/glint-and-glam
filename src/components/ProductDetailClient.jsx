@@ -71,7 +71,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
   // 3. Size + Color dono ka exact variant match find karo
   const selectedVariant = useMemo(() => {
     if (!product?.variants || product.variants.length === 0) {
-      return { id: 'default', price: 0, stock: 0 };
+      return { id: 'default', price: 0, originalPrice: null, stock: 0 };
     }
     return product.variants.find((v) => {
       const matchSize = selectedSize ? v.size === selectedSize : true;
@@ -98,6 +98,14 @@ export default function ProductDetailClient({ productId, initialProduct }) {
   // Stock logic
   const isOutOfStock = !selectedVariant || selectedVariant.stock <= 0;
 
+  // Discount Calculation Helpers
+  const sellingPrice = Number(selectedVariant?.price || 0);
+  const originalPrice = selectedVariant?.originalPrice ? Number(selectedVariant.originalPrice) : null;
+  const hasDiscount = originalPrice && originalPrice > sellingPrice;
+  const discountPercentage = hasDiscount 
+    ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) 
+    : 0;
+
   const handleAddToCart = async () => {
     if (isOutOfStock) {
       toast.error("Sorry, this item is currently out of stock!");
@@ -106,7 +114,6 @@ export default function ProductDetailClient({ productId, initialProduct }) {
     
     setIsAdding(true);
     try {
-      // 🔑 FIX: Context ke `addToCart(variantId, stockAvailable)` ke mutabiq call kiya gaya hai
       await addToCart(selectedVariant.id, selectedVariant.stock);
     } catch (error) {
       console.error("Cart error:", error);
@@ -157,10 +164,23 @@ export default function ProductDetailClient({ productId, initialProduct }) {
                 {product.name}
               </h1>
               
-              {/* Price */}
-              <p className="text-xl font-semibold mt-2" style={{ color: '#3a2e28' }}>
-                Rs. {Number(selectedVariant?.price || 0).toLocaleString()}
-              </p>
+              {/* 🏷️ Dynamic Vibrant Red Discount Badge */}
+              <div className="flex items-baseline gap-3 mt-2">
+                <span className="text-2xl font-semibold" style={{ color: '#3a2e28' }}>
+                  Rs. {sellingPrice.toLocaleString()}
+                </span>
+
+                {hasDiscount && (
+                  <>
+                    <span className="text-sm text-gray-400 line-through font-medium">
+                      Rs. {originalPrice.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] bg-[#C8102E] text-white font-bold px-2 py-0.5 uppercase tracking-wider">
+                      {discountPercentage}% OFF
+                    </span>
+                  </>
+                )}
+              </div>
               
               {/* Stock Status Indicator */}
               <div className="mt-4 inline-block">
@@ -183,7 +203,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
             <hr style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }} />
 
             {/* Description */}
-            <p className="text-xs sm:text-sm font-light leading-relaxed opacity-80" style={{ color: '#3a2e28' }}>
+            <p className="text-xs sm:text-sm font-light leading-relaxed opacity-80 whitespace-pre-line" style={{ color: '#3a2e28' }}>
               {product.description}
             </p>
 
@@ -216,7 +236,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
               </div>
             )}
 
-            {/* --- Colors Selector (Dynamically Filtered by Size) --- */}
+            {/* --- Colors Selector --- */}
             {availableColorsForSize.length > 0 && (
               <div className="space-y-3">
                 <span className="text-[10px] uppercase tracking-widest opacity-70 font-semibold" style={{ color: '#3a2e28' }}>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// 🔍 1. GET: Single product details fetch karne ka handler
+// 🔍 1. GET: Single product details fetch karne ka handler (Decimal Price Fix)
 export async function GET(req, { params }) {
   try {
     const { id } = await params;
@@ -20,14 +20,24 @@ export async function GET(req, { params }) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    return NextResponse.json(product, { status: 200 });
+    // 🌟 Convert Prisma Decimals to plain numbers for Edit Modal & Frontend
+    const formattedProduct = {
+      ...product,
+      variants: product.variants.map((v) => ({
+        ...v,
+        price: Number(v.price),
+        originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+      })),
+    };
+
+    return NextResponse.json(formattedProduct, { status: 200 });
   } catch (error) {
     console.error("❌ GET Product Error:", error);
     return NextResponse.json({ error: "Failed to fetch product details" }, { status: 500 });
   }
 }
 
-// 🔄 2. PATCH: Product update handler (JSON Parsing & Cloudinary / Color Compatible)
+// 🔄 2. PATCH: Product update handler (JSON Parsing & Cloudinary / Color / Original Price Compatible)
 export async function PATCH(req, { params }) {
   try {
     const { id } = await params;
@@ -67,7 +77,7 @@ export async function PATCH(req, { params }) {
         });
       }
 
-      // 3. Safe Variant Sync (Supports both Size & Color)
+      // 3. Safe Variant Sync (Supports Size, Color & Original Price)
       if (variants) {
         const incomingVariantIds = variants
           .filter((v) => v.id)
@@ -90,6 +100,7 @@ export async function PATCH(req, { params }) {
                 size: String(v.size || ''),
                 color: String(v.color || ''),
                 price: parseFloat(v.price),
+                originalPrice: v.originalPrice ? parseFloat(v.originalPrice) : null,
                 stock: parseInt(v.stock) || 0,
               },
             });
@@ -99,6 +110,7 @@ export async function PATCH(req, { params }) {
                 size: String(v.size || ''),
                 color: String(v.color || ''),
                 price: parseFloat(v.price),
+                originalPrice: v.originalPrice ? parseFloat(v.originalPrice) : null,
                 stock: parseInt(v.stock) || 0,
                 productId: targetId,
               },

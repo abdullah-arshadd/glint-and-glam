@@ -365,48 +365,74 @@ function ShopContent() {
         ) : (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 lg:gap-x-8 gap-y-12">
-              {paginatedProducts?.map((product) => (
-                <div key={product.id} className="group flex flex-col relative">
-                  
-                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
+              {paginatedProducts?.map((product) => {
+                const baseVariant = product.variants?.[0];
+                const price = baseVariant?.price ? Number(baseVariant.price) : 0;
+                const originalPrice = baseVariant?.originalPrice ? Number(baseVariant.originalPrice) : null;
+                const hasDiscount = originalPrice && originalPrice > price;
+                const discountPercent = hasDiscount 
+                  ? Math.round(((originalPrice - price) / originalPrice) * 100) 
+                  : 0;
+
+                return (
+                  <div key={product.id} className="group flex flex-col relative">
                     
-                    <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
-                      <img 
-                        src={product.images?.[0]?.url || '/placeholder.jpg'} 
-                        alt={product.name} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103" 
-                      />
-                    </Link>
-                    
-                    <div className="absolute inset-0 pointer-events-none bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:flex">
-                      <Link 
-                        href={`/shop/${product.id}`} 
-                        className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity rounded-none pointer-events-auto"
-                        style={{ backgroundColor: '#3a2e28' }}
-                      >
-                        <ShoppingBag size={12} /> View Item
+                    <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
+                      
+                      <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
+                        <img 
+                          src={product.images?.[0]?.url || '/placeholder.jpg'} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103" 
+                        />
                       </Link>
+                      
+                      {/* 🏷️ High-Visibility Vibrant Red Discount Badge */}
+                      {hasDiscount && (
+                        <div className="absolute top-2.5 left-2.5 z-10 bg-[#C8102E] text-white text-[9px] font-bold px-2.5 py-1 uppercase tracking-widest shadow-md">
+                          {discountPercent}% OFF
+                        </div>
+                      )}
+
+                      <div className="absolute inset-0 pointer-events-none bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:flex">
+                        <Link 
+                          href={`/shop/${product.id}`} 
+                          className="w-full text-white py-3 uppercase tracking-widest text-[9px] font-semibold flex items-center justify-center gap-2 hover:opacity-95 transition-opacity rounded-none pointer-events-auto"
+                          style={{ backgroundColor: '#3a2e28' }}
+                        >
+                          <ShoppingBag size={12} /> View Item
+                        </Link>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="mt-4 text-center">
-                    <span className="text-[8px] uppercase tracking-widest opacity-60 font-medium" style={{ color: '#3a2e28' }}>
-                      {allCategoriesFlat.find(c => c.id === product.categoryId)?.name || "Fine Jewelry"}
-                    </span>
-                    
-                    <Link href={`/shop/${product.id}`} className="block cursor-pointer">
-                      <h3 className="text-[11px] lg:text-xs font-light tracking-wide mt-1 hover:text-[#DB93B0] transition-colors duration-200 line-clamp-1" style={{ color: '#3a2e28' }}>
-                        {product.name}
-                      </h3>
-                    </Link>
-                    
-                    <p className="text-xs lg:text-sm font-semibold mt-1" style={{ color: '#3a2e28' }}>
-                      Rs. {product.variants?.length > 0 ? Number(product.variants[0].price).toLocaleString() : "N/A"}
-                    </p>
-                  </div>
+                    <div className="mt-4 text-center">
+                      <span className="text-[8px] uppercase tracking-widest opacity-60 font-medium" style={{ color: '#3a2e28' }}>
+                        {allCategoriesFlat.find(c => c.id === product.categoryId)?.name || "Fine Jewelry"}
+                      </span>
+                      
+                      <Link href={`/shop/${product.id}`} className="block cursor-pointer">
+                        <h3 className="text-[11px] lg:text-xs font-light tracking-wide mt-1 hover:text-[#DB93B0] transition-colors duration-200 line-clamp-1" style={{ color: '#3a2e28' }}>
+                          {product.name}
+                        </h3>
+                      </Link>
+                      
+                      {/* 🏷️ Price & High Contrast Strikethrough Display */}
+                      <div className="flex items-center justify-center gap-2 mt-1">
+                        <span className="text-xs lg:text-sm font-semibold" style={{ color: '#3a2e28' }}>
+                          Rs. {price.toLocaleString()}
+                        </span>
 
-                </div>
-              ))}
+                        {hasDiscount && (
+                          <span className="text-[10px] lg:text-xs text-gray-400 line-through font-medium">
+                            Rs. {originalPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })}
             </div>
 
             {/* 🌟 LUXURY PAGINATION BAR */}

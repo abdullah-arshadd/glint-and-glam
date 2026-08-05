@@ -8,7 +8,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// 👤 User Model (UPDATED RELATION)
+// 👤 User Model
 model User {
   id                String    @id @default(uuid())
   name              String
@@ -16,7 +16,7 @@ model User {
   password          String
   phone             String?
   role              Role      @default(USER)
-  orders            Order[]   // 🔥 User ke saare orders tracking array pipeline connect karne ke liye
+  orders            Order[]   
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   isVerified        Boolean   @default(false)
@@ -51,17 +51,18 @@ model ProductImage {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
-// 3. Product Variant Model
+// 3. Product Variant Model (UPDATED FOR ORIGINAL/COMPARE PRICE)
 model ProductVariant {
-  id         String      @id @default(cuid())
-  size       String?
-  color      String?     // 🔑 Color Variant Attribute Field
-  price      Decimal     @db.Decimal(10, 2)
-  stock      Int         @default(0)
-  productId  String
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems OrderItem[]
-  cartItems  CartItem[]
+  id            String      @id @default(cuid())
+  size          String?
+  color         String?     // 🔑 Color Variant Attribute Field
+  price         Decimal     @db.Decimal(10, 2) // Selling / Discounted Price
+  originalPrice Decimal?    @db.Decimal(10, 2) // 🏷️ Original / Strikethrough Price
+  stock         Int         @default(0)
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
 }
 
 // 4. Category Model
@@ -75,17 +76,17 @@ model Category {
   products Product[]
 }
 
-// 5. Cart Model (Database-Backed)
+// 5. Cart Model
 model CartItem {
   id        String         @id @default(cuid())
-  sessionId String         // Browser session ID ya User ID
+  sessionId String         
   quantity  Int            @default(1)
   variantId String
   variant   ProductVariant @relation(fields: [variantId], references: [id])
   createdAt DateTime       @default(now())
 }
 
-// 6. Order Model (UPDATED FOR DYNAMIC PAYMENTS & SECURITY)
+// 6. Order Model
 model Order {
   id                 String      @id @default(cuid())
   fullName           String
@@ -94,18 +95,16 @@ model Order {
   city               String
   notes              String?
   totalAmount        Decimal     @db.Decimal(10, 2)
-  status             String      @default("PENDING") // PENDING, SHIPPED, DELIVERED, CANCELLED
+  status             String      @default("PENDING")
 
-  // 🔑 NEW CHANNELS: Payment Gateways Tracking Engine
-  paymentMethod      String      // "COD", "BANK", ya "WALLET"
-  paymentStatus      String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
-  paymentProof       String?     // 🔥 Yahan add kar diya hai dono COD aur Advance proofs (Base64/URL) ke liye
+  paymentMethod      String      
+  paymentStatus      String      @default("PENDING") 
+  paymentProof       String?     
   cancellationReason String?
-  gatewayRefId       String?     // External Aggregator Redirect/Transaction Session ID Tracking
+  gatewayRefId       String?     
 
   items              OrderItem[]
   
-  // 🔥 Relational constraints to avoid 'Unknown argument userId' schema crash
   userId             String?     
   user               User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -120,10 +119,10 @@ model OrderItem {
   variantId String
   variant   ProductVariant @relation(fields: [variantId], references: [id])
   quantity  Int
-  price     Decimal        @db.Decimal(10, 2) // Order ke waqt jo price thi
+  price     Decimal        @db.Decimal(10, 2) 
 }
 
-// 🚀 NEW MODEL: Temporary OTP Freeze Engine
+// 🚀 OTP Freeze Engine
 model PhoneVerification {
   id        String   @id @default(cuid())
   phone     String   @unique

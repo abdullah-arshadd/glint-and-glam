@@ -6,13 +6,13 @@ export default async function ProductDetailPage({ params }) {
   // 1. Params ko await karo
   const { id } = await params;
 
-  // 2. Database query (Include category here)
+  // 2. Database query (Include category, images, variants)
   const product = await prisma.product.findUnique({
     where: { id: id },
     include: { 
       variants: true,
       images: true,
-      category: true // Category details ke liye zaroori hai
+      category: true
     }
   });
 
@@ -21,15 +21,16 @@ export default async function ProductDetailPage({ params }) {
     notFound();
   }
 
-  // 🌟 Decimal price ko plain Number mein convert karein
+  // 🌟 Decimal price aur originalPrice dono ko Plain Numbers mein convert karein
   const formattedProduct = {
     ...product,
     variants: product.variants.map((variant) => ({
       ...variant,
-      price: Number(variant.price) 
+      price: Number(variant.price),
+      originalPrice: variant.originalPrice ? Number(variant.originalPrice) : null
     }))
   };
 
-  // 4. Return (initialProduct pass karein taake SWR pehli dafa instant render kare)
+  // 4. Return initialProduct for instant rendering
   return <ProductDetailClient productId={id} initialProduct={formattedProduct} />;
 }

@@ -29,12 +29,13 @@ export default function AdminProducts() {
   const [selectedSubId, setSelectedSubId] = useState('');
   const [selectedChildId, setSelectedChildId] = useState('');
   
-  // 🎨 Size, Color, Price, Stock k sath Variant structure
+  // 🎨 Size, Color, Original Price, Sale Price, Stock Variant Structure
   const createEmptyVariant = () => ({
     feId: `fe-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`,
     id: undefined, 
     size: '',
     color: '',
+    originalPrice: '',
     price: '',
     stock: ''
   });
@@ -136,6 +137,7 @@ export default function AdminProducts() {
             id: v.id, 
             size: v.size || '', 
             color: v.color || '',
+            originalPrice: v.originalPrice ? v.originalPrice.toString() : '',
             price: v.price ? v.price.toString() : '', 
             stock: v.stock !== undefined ? v.stock.toString() : '' 
           })) 
@@ -190,7 +192,6 @@ export default function AdminProducts() {
     setImages(updated);
   };
 
-  // 🌟 CLOUDINARY FILE UPLOAD HANDLER
   const handleFileUpload = async (index, file) => {
     if (!file) return;
 
@@ -233,13 +234,13 @@ export default function AdminProducts() {
 
     const filteredImages = images.filter(img => img.url && img.url.trim() !== '');
     
-    // 🎨 Color Attribute mapping inside Variant Payload
     const filteredVariants = variants
       .filter(v => (v.size || v.color) && v.price && v.stock)
       .map(v => ({
         id: v.id || undefined, 
         size: String(v.size || 'Standard'),
         color: String(v.color || ''),
+        originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
         price: Number(v.price),
         stock: Number(v.stock)
       }));
@@ -446,6 +447,7 @@ export default function AdminProducts() {
               const sizeList = Array.from(new Set(prod.variants?.map(v => v.size).filter(Boolean))).join(', ') || 'N/A';
               const colorList = Array.from(new Set(prod.variants?.map(v => v.color).filter(Boolean))).join(', ') || 'N/A';
               const basePrice = prod.variants?.[0]?.price || 0;
+              const originalPrice = prod.variants?.[0]?.originalPrice || null;
               const isLowStock = totalStock <= 5;
               const isDeleting = deletingId === prod.id;
 
@@ -521,7 +523,8 @@ export default function AdminProducts() {
                         </div>
                       </div>
 
-                      <p className="text-xs text-gray-400 line-clamp-2 h-8 leading-relaxed">
+                      {/* 🌟 Description formatting fix: whitespace-pre-line */}
+                      <p className="text-xs text-gray-400 line-clamp-2 h-8 leading-relaxed whitespace-pre-line">
                         {prod.description || 'No description added'}
                       </p>
                       
@@ -530,7 +533,14 @@ export default function AdminProducts() {
                         {colorList !== 'N/A' && (
                           <span className="px-2.5 py-1 bg-[#FAF9F6] border border-gray-200/60 text-gray-600">Colors: {colorList}</span>
                         )}
-                        <span className="px-2.5 py-1 bg-[#FAF9F6] border border-gray-200/60 text-[#2D2524] font-semibold">Rs. {Number(basePrice).toLocaleString()}</span>
+                        <span className="px-2.5 py-1 bg-[#FAF9F6] border border-gray-200/60 text-[#2D2524] font-semibold">
+                          Rs. {Number(basePrice).toLocaleString()}
+                          {originalPrice && Number(originalPrice) > Number(basePrice) && (
+                            <span className="line-through text-gray-400 ml-1.5 text-[9px]">
+                              Rs. {Number(originalPrice).toLocaleString()}
+                            </span>
+                          )}
+                        </span>
                         <motion.span
                           animate={isLowStock ? { opacity: [1, 0.55, 1] } : {}}
                           transition={isLowStock ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' } : {}}
@@ -697,11 +707,11 @@ export default function AdminProducts() {
                   <div className="space-y-1.5">
                     <label className="font-semibold uppercase tracking-wider text-[10px] text-gray-500">Detailed Description *</label>
                     <textarea 
-                      rows={4}
+                      rows={6}
                       value={description} 
                       onChange={(e) => setDescription(e.target.value)} 
-                      placeholder="Describe aesthetics, material blend, specifications..."
-                      className="w-full border border-gray-200 p-3 text-xs outline-none focus:border-[#DB93B0] focus:ring-2 focus:ring-[#DB93B0]/15 transition-all duration-300 resize-none bg-gray-50/20 leading-relaxed"
+                      placeholder="Paste bullet points, specifications, and line breaks..."
+                      className="w-full border border-gray-200 p-3 text-xs outline-none focus:border-[#DB93B0] focus:ring-2 focus:ring-[#DB93B0]/15 transition-all duration-300 resize-none bg-gray-50/20 leading-relaxed whitespace-pre-wrap"
                       required
                     />
                   </div>
@@ -733,7 +743,7 @@ export default function AdminProducts() {
                   </motion.div>
                 </div>
 
-                {/* IMAGES BLOCK WITH FILE UPLOAD BUTTON & CLOUDINARY INTEGRATION */}
+                {/* IMAGES BLOCK WITH CLOUDINARY INTEGRATION */}
                 <div className="space-y-3 border-t border-gray-100 pt-5">
                   <div className="flex justify-between items-center">
                     <label className="font-semibold uppercase tracking-wider text-[10px] text-gray-500">Product Images *</label>
@@ -760,7 +770,6 @@ export default function AdminProducts() {
                           className="flex flex-col gap-2 p-3 bg-gray-50/50 border border-gray-200/60 rounded-none"
                         >
                           <div className="flex gap-2 items-center">
-                            {/* Preview Thumbnail */}
                             <div className="w-12 h-12 bg-gray-100 border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
                               {img.url ? (
                                 <img src={img.url} alt="preview" className="w-full h-full object-cover" />
@@ -769,7 +778,6 @@ export default function AdminProducts() {
                               )}
                             </div>
 
-                            {/* URL Text Input */}
                             <input 
                               type="url" 
                               value={img.url} 
@@ -778,7 +786,6 @@ export default function AdminProducts() {
                               className="w-full border border-gray-200 p-2.5 text-xs outline-none focus:border-[#DB93B0] bg-white"
                             />
 
-                            {/* Delete Slot Button */}
                             {images.length > 1 && (
                               <motion.button
                                 type="button"
@@ -792,7 +799,6 @@ export default function AdminProducts() {
                             )}
                           </div>
 
-                          {/* Direct File Upload to Cloudinary */}
                           <div className="flex items-center gap-2 pt-1">
                             <label className="flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider bg-[#2D2524] text-white px-3 py-1.5 hover:bg-[#4A3E3D] transition-colors cursor-pointer w-full sm:w-auto">
                               {uploadingIndex === index ? (
@@ -824,7 +830,7 @@ export default function AdminProducts() {
                   </div>
                 </div>
 
-                {/* 🎨 VARIANT MATRIX WITH SIZE AND COLOR INPUTS */}
+                {/* 🎨 VARIANT MATRIX WITH ORIGINAL & SALE PRICES */}
                 <div className="space-y-3 border-t border-gray-100 pt-5">
                   <div className="flex justify-between items-center">
                     <label className="font-semibold uppercase tracking-wider text-[10px] text-gray-500">Stock Variant Matrix *</label>
@@ -850,8 +856,8 @@ export default function AdminProducts() {
                           transition={{ duration: 0.25 }}
                           className="flex flex-wrap sm:flex-nowrap gap-2 bg-[#FAF9F6] p-2.5 sm:p-3 border border-gray-200/60 items-center"
                         >
-                          {/* Size Field */}
-                          <div className="w-[23%] sm:w-1/5">
+                          {/* Size */}
+                          <div className="w-[18%]">
                             <input 
                               type="text" 
                               placeholder="Size" 
@@ -861,34 +867,45 @@ export default function AdminProducts() {
                             />
                           </div>
 
-                          {/* 🎨 Color Field */}
-                          <div className="w-[27%] sm:w-1/4">
+                          {/* Color */}
+                          <div className="w-[20%]">
                             <input 
                               type="text" 
-                              placeholder="Color (e.g. Gold)" 
+                              placeholder="Color" 
                               value={v.color}
                               onChange={(e) => updateVariant(v.feId, 'color', e.target.value)}
                               className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs"
                             />
                           </div>
 
-                          {/* Price Field */}
-                          <div className="w-[24%] sm:w-1/4">
+                          {/* 🏷️ Original / Strikethrough Price */}
+                          <div className="w-[22%]">
                             <input 
                               type="number" 
-                              placeholder="Price" 
+                              placeholder="Orig Price" 
+                              value={v.originalPrice}
+                              onChange={(e) => updateVariant(v.feId, 'originalPrice', e.target.value)}
+                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs text-gray-500"
+                            />
+                          </div>
+
+                          {/* Selling Price */}
+                          <div className="w-[22%]">
+                            <input 
+                              type="number" 
+                              placeholder="Sale Price *" 
                               value={v.price}
                               onChange={(e) => updateVariant(v.feId, 'price', e.target.value)}
-                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs"
+                              className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs font-semibold"
                               required
                             />
                           </div>
 
-                          {/* Stock Field */}
-                          <div className="w-[18%] sm:w-1/5">
+                          {/* Stock */}
+                          <div className="w-[12%]">
                             <input 
                               type="number" 
-                              placeholder="Stock" 
+                              placeholder="Stock *" 
                               value={v.stock}
                               onChange={(e) => updateVariant(v.feId, 'stock', e.target.value)}
                               className="w-full border border-gray-200 p-2 bg-white outline-none focus:border-[#DB93B0] text-xs"
@@ -897,7 +914,7 @@ export default function AdminProducts() {
                           </div>
 
                           {/* Remove Variant Button */}
-                          <div className="w-[5%] sm:w-[8%] flex justify-center ml-auto">
+                          <div className="w-[6%] flex justify-center ml-auto">
                             {variants.length > 1 && (
                               <motion.button 
                                 type="button" 

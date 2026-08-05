@@ -30,8 +30,18 @@ export async function GET(req) {
         createdAt: 'desc',
       }
     });
+
+    // 🌟 Format Decimals for Frontend (price + originalPrice)
+    const formattedProducts = products.map((product) => ({
+      ...product,
+      variants: product.variants.map((v) => ({
+        ...v,
+        price: Number(v.price),
+        originalPrice: v.originalPrice ? Number(v.originalPrice) : null,
+      })),
+    }));
     
-    return NextResponse.json(products, { status: 200 });
+    return NextResponse.json(formattedProducts, { status: 200 });
   } catch (error) {
     console.error("Fetch products error:", error);
     return NextResponse.json([], { 
@@ -41,10 +51,9 @@ export async function GET(req) {
   }
 }
 
-// ➕ POST: Naya product create karne ke liye (JSON PAYLOAD & CLOUDINARY + COLOR/SIZE VARIANTS SUPPORT)
+// ➕ POST: Naya product create karne ke liye (Original Price Support Added)
 export async function POST(req) {
   try {
-    // 🌟 Correct Parsing: Read JSON payload sent from frontend
     const body = await req.json();
     const { name, description, categoryId, images, variants, isFeatured } = body;
 
@@ -68,8 +77,9 @@ export async function POST(req) {
         variants: {
           create: variants.map((v) => ({
             size: String(v.size || ''),
-            color: String(v.color || ''), // 🔑 Mapped Color attribute field
+            color: String(v.color || ''),
             price: parseFloat(v.price),
+            originalPrice: v.originalPrice ? parseFloat(v.originalPrice) : null, // 🏷️ Original Price support
             stock: parseInt(v.stock) || 0,
           })),
         },

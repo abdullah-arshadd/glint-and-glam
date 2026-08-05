@@ -27,7 +27,7 @@ export default function CheckoutPage() {
   const [paymentProof, setPaymentProof] = useState(null);
   const [fileName, setFileName] = useState('');
 
-  const shippingFee = 250;
+  const shippingFee = 300;
   const grandTotal = cartTotal + shippingFee;
 
   React.useEffect(() => {
@@ -156,9 +156,9 @@ export default function CheckoutPage() {
     <div className="mt-3 bg-[#f5f3ed] p-3 rounded-md text-xs border border-[rgba(58,46,40,0.1)]">
       <p className="font-semibold mb-1.5" style={{ color: '#3a2e28' }}>Bank Account Details:</p>
       <div className="space-y-1 opacity-80" style={{ color: '#3a2e28' }}>
-        <p><span className="font-medium">Bank Name:</span> Easypaisa</p>
+        <p><span className="font-medium">Bank Name:</span> Jazzcash</p>
         <p><span className="font-medium">Account Title:</span> Raazia Arshad</p>
-        <p><span className="font-medium">Account No:</span> 03340657345</p>
+        <p><span className="font-medium">Account No:</span> 0305-2694986</p>
       </div>
     </div>
   );

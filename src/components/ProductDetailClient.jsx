@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ShoppingBag, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext'; 
 import { toast } from 'sonner'; 
 import useSWR from 'swr';
@@ -27,26 +27,38 @@ export default function ProductDetailClient({ productId, initialProduct }) {
   // Selection States
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
-  const [selectedImage, setSelectedImage] = useState(
-    product?.images?.[0]?.url || "/placeholder.jpg"
-  );
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
-  // 1. Unique Sizes Extract Karo
+  // Touch Swipe & Thumbnail Auto-Scroll Refs
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const thumbnailRefs = useRef([]);
+
+  const imagesList = useMemo(() => {
+    if (product?.images && product.images.length > 0) {
+      return product.images;
+    }
+    return [{ id: 'placeholder', url: '/placeholder.jpg' }];
+  }, [product]);
+
+  // Selected Image URL
+  const selectedImage = imagesList[selectedImageIndex]?.url || "/placeholder.jpg";
+
+  // 1. Unique Sizes Extract
   const allSizes = useMemo(() => {
     if (!product?.variants) return [];
     return Array.from(new Set(product.variants.map((v) => v.size).filter(Boolean)));
   }, [product]);
 
-  // Auto-select First Available Size
   useEffect(() => {
     if (allSizes.length > 0 && !selectedSize) {
       setSelectedSize(allSizes[0]);
     }
   }, [allSizes, selectedSize]);
 
-  // 2. Selected Size ke mutabiq available colors filter karo
+  // 2. Selected Size ke mutabiq available colors
   const availableColorsForSize = useMemo(() => {
     if (!product?.variants) return [];
     
@@ -57,7 +69,6 @@ export default function ProductDetailClient({ productId, initialProduct }) {
     return Array.from(new Set(filteredVariants.map((v) => v.color).filter(Boolean)));
   }, [product, selectedSize]);
 
-  // Auto-select First Available Color jab Size badle
   useEffect(() => {
     if (availableColorsForSize.length > 0) {
       if (!availableColorsForSize.includes(selectedColor)) {
@@ -68,7 +79,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
     }
   }, [availableColorsForSize, selectedColor]);
 
-  // 3. Size + Color dono ka exact variant match find karo
+  // 3. Variant Match
   const selectedVariant = useMemo(() => {
     if (!product?.variants || product.variants.length === 0) {
       return { id: 'default', price: 0, originalPrice: null, stock: 0 };
@@ -80,12 +91,49 @@ export default function ProductDetailClient({ productId, initialProduct }) {
     }) || product.variants[0];
   }, [product, selectedSize, selectedColor]);
 
-  // Sync main image if cached product updates
+  // 🌟 Auto-scroll active thumbnail into view on index change
   useEffect(() => {
-    if (product?.images?.length > 0 && selectedImage === "/placeholder.jpg") {
-      setSelectedImage(product.images[0].url);
+    if (thumbnailRefs.current[selectedImageIndex]) {
+      thumbnailRefs.current[selectedImageIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
     }
-  }, [product, selectedImage]);
+  }, [selectedImageIndex]);
+
+  // Image Slide Controls
+  const handlePrevImage = () => {
+    setSelectedImageIndex((prev) => (prev === 0 ? imagesList.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setSelectedImageIndex((prev) => (prev === imagesList.length - 1 ? 0 : prev + 1));
+  };
+
+  // Touch Swipe Handlers for Mobile
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const minSwipeDistance = 40;
+
+    if (distance > minSwipeDistance) {
+      handleNextImage(); // Swiped left -> Next
+    } else if (distance < -minSwipeDistance) {
+      handlePrevImage(); // Swiped right -> Prev
+    }
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
 
   if (!product) {
     return (
@@ -95,10 +143,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
     );
   }
 
-  // Stock logic
   const isOutOfStock = !selectedVariant || selectedVariant.stock <= 0;
-
-  // Discount Calculation Helpers
   const sellingPrice = Number(selectedVariant?.price || 0);
   const originalPrice = selectedVariant?.originalPrice ? Number(selectedVariant.originalPrice) : null;
   const hasDiscount = originalPrice && originalPrice > sellingPrice;
@@ -127,31 +172,87 @@ export default function ProductDetailClient({ productId, initialProduct }) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
           
-          {/* --- LEFT: Image Section --- */}
+          {/* --- LEFT: Image Slider & Gallery --- */}
           <div className="flex flex-col gap-4">
-            <div className="w-full aspect-[4/5] bg-white/40 overflow-hidden border" style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }}>
-              <img src={selectedImage} alt={product.name} className="w-full h-full object-cover" />
+            
+            {/* Main Interactive Slider Box */}
+            <div 
+              className="relative w-full aspect-[4/5] bg-white/40 overflow-hidden border select-none group"
+              style={{ borderColor: 'rgba(58, 46, 40, 0.08)' }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <img 
+                src={selectedImage} 
+                alt={product.name} 
+                className="w-full h-full object-cover transition-all duration-300 pointer-events-none" 
+              />
+
+              {/* Prev / Next Slide Arrows (ONLY visible on Desktop hover, Hidden on Mobile) */}
+              {imagesList.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePrevImage}
+                    className="hidden lg:flex absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[#3a2e28] p-2 rounded-full shadow-md transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                    aria-label="Previous Image"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextImage}
+                    className="hidden lg:flex absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[#3a2e28] p-2 rounded-full shadow-md transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                    aria-label="Next Image"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+
+                  {/* Image Counter Indicator */}
+                  <div className="absolute bottom-3 right-3 bg-black/60 text-white text-[9px] px-2 py-0.5 tracking-widest uppercase font-mono">
+                    {selectedImageIndex + 1} / {imagesList.length}
+                  </div>
+                </>
+              )}
             </div>
             
-            {/* Thumbnails Row */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {product.images?.map((img) => (
-                <button 
-                  key={img.id} 
-                  type="button"
-                  onClick={() => setSelectedImage(img.url)}
-                  className="flex-shrink-0 w-16 h-16 border overflow-hidden bg-white transition-all cursor-pointer"
-                  style={{ 
-                    borderColor: selectedImage === img.url ? '#3a2e28' : 'rgba(58, 46, 40, 0.1)' 
-                  }}
-                >
-                  <img src={img.url} alt="thumbnail" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+            {/* 🌟 Thumbnails Carousel (Scrollbar-Free + Auto-centering Active Thumb) */}
+            {imagesList.length > 1 && (
+              <div className="flex gap-2.5 overflow-x-auto pb-1 pt-1 no-scrollbar scroll-smooth snap-x">
+                {imagesList.map((img, idx) => (
+                  <button 
+                    key={img.id || idx} 
+                    ref={(el) => (thumbnailRefs.current[idx] = el)}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className="flex-shrink-0 w-16 h-16 border overflow-hidden bg-white transition-all cursor-pointer snap-center"
+                    style={{ 
+                      borderColor: selectedImageIndex === idx ? '#3a2e28' : 'rgba(58, 46, 40, 0.12)',
+                      opacity: selectedImageIndex === idx ? 1 : 0.5,
+                      borderWidth: selectedImageIndex === idx ? '2px' : '1px'
+                    }}
+                  >
+                    <img src={img.url} alt={`thumbnail-${idx}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Custom CSS to hide scrollbars globally in Chrome, Safari, Firefox */}
+            <style jsx>{`
+              .no-scrollbar::-webkit-scrollbar {
+                display: none;
+              }
+              .no-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+              }
+            `}</style>
+
           </div>
 
-          {/* --- RIGHT: Content Section --- */}
+          {/* --- RIGHT: Product Information --- */}
           <div className="flex flex-col space-y-6 lg:pt-2">
             <div>
               {/* Category */}
@@ -164,7 +265,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
                 {product.name}
               </h1>
               
-              {/* 🏷️ Dynamic Vibrant Red Discount Badge */}
+              {/* 🏷️ Dynamic Price & Discount Badge */}
               <div className="flex items-baseline gap-3 mt-2">
                 <span className="text-2xl font-semibold" style={{ color: '#3a2e28' }}>
                   Rs. {sellingPrice.toLocaleString()}
@@ -265,7 +366,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
               </div>
             )}
 
-            {/* --- Add to Cart Primary Button --- */}
+            {/* --- Add to Cart Button --- */}
             <div className="pt-4">
               <button 
                 onClick={handleAddToCart}

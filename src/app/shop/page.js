@@ -1,9 +1,10 @@
 'use client';
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SlidersHorizontal, ShoppingBag, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import useSWR from 'swr';
+import { motion } from 'framer-motion';
 import { getOptimizedUrl } from '@/lib/cloudinary';
 
 // 🌟 SWR Fetcher Utility Function
@@ -54,6 +55,18 @@ function ShopContent() {
   // 🌟 Pagination State
   const [currentPage, setCurrentPage] = useState(1);
 
+  // 🌟 Mobile category row: fade-edge scroll affordance
+  const mainCatScrollRef = useRef(null);
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(false);
+
+  const updateFadeState = () => {
+    const el = mainCatScrollRef.current;
+    if (!el) return;
+    setShowLeftFade(el.scrollLeft > 4);
+    setShowRightFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
   // 🌟 SWR DATA CACHING PIPELINE
   const { data: catData, isLoading: isCatLoading } = useSWR("/api/categories", fetcher, {
     revalidateOnFocus: false,
@@ -71,6 +84,32 @@ function ShopContent() {
     if (catData && Array.isArray(catData.categories)) return catData.categories;
     return [];
   }, [catData]);
+
+  // 🌟 Fade edges + one-time "peek and settle" nudge for the mobile category row —
+  // runs after `categories` is available since the row's content depends on it.
+  useEffect(() => {
+    const el = mainCatScrollRef.current;
+    if (!el) return;
+
+    updateFadeState();
+    el.addEventListener('scroll', updateFadeState, { passive: true });
+    window.addEventListener('resize', updateFadeState);
+
+    const nudgeTimer = setTimeout(() => {
+      if (!el || el.scrollWidth <= el.clientWidth) return; // nothing to scroll
+      el.scrollTo({ left: 46, behavior: 'smooth' });
+      setTimeout(() => {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      }, 500);
+    }, 600);
+
+    return () => {
+      el.removeEventListener('scroll', updateFadeState);
+      window.removeEventListener('resize', updateFadeState);
+      clearTimeout(nudgeTimer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories.length]);
 
   const products = useMemo(() => {
     if (Array.isArray(prodData)) return prodData;
@@ -232,33 +271,54 @@ function ShopContent() {
         <div className="flex flex-col pb-4 mb-12 gap-5 select-none">
           
           {/* Level 1: Main Categories */}
-          <div className="w-full overflow-x-auto lg:flex-wrap whitespace-nowrap scrollbar-none flex items-center gap-2 uppercase tracking-widest text-[9px] font-semibold pb-1 scroll-smooth snap-x">
-            <button
-              onClick={() => handleMainClick('All')}
-              className="px-5 py-2 border transition-all duration-200 cursor-pointer layout-btn inline-block shrink-0 snap-start rounded-none"
-              style={{
-                backgroundColor: selectedMain === 'All' ? '#3a2e28' : 'transparent',
-                borderColor: selectedMain === 'All' ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
-                color: selectedMain === 'All' ? '#ffffff' : '#3a2e28'
-              }}
+          <div className="relative w-full">
+            <div
+              ref={mainCatScrollRef}
+              className="w-full overflow-x-auto lg:flex-wrap whitespace-nowrap scrollbar-none flex items-center gap-2 uppercase tracking-widest text-[9px] font-semibold pb-1 scroll-smooth snap-x"
             >
-              All
-            </button>
-
-            {mainCategories.map((cat) => (
               <button
-                key={cat.id}
-                onClick={() => handleMainClick(cat.id)}
+                onClick={() => handleMainClick('All')}
                 className="px-5 py-2 border transition-all duration-200 cursor-pointer layout-btn inline-block shrink-0 snap-start rounded-none"
                 style={{
-                  backgroundColor: selectedMain === cat.id ? '#3a2e28' : 'transparent',
-                  borderColor: selectedMain === cat.id ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
-                  color: selectedMain === cat.id ? '#ffffff' : '#3a2e28'
+                  backgroundColor: selectedMain === 'All' ? '#3a2e28' : 'transparent',
+                  borderColor: selectedMain === 'All' ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
+                  color: selectedMain === 'All' ? '#ffffff' : '#3a2e28'
                 }}
               >
-                {cat.name}
+                All
               </button>
-            ))}
+
+              {mainCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleMainClick(cat.id)}
+                  className="px-5 py-2 border transition-all duration-200 cursor-pointer layout-btn inline-block shrink-0 snap-start rounded-none"
+                  style={{
+                    backgroundColor: selectedMain === cat.id ? '#3a2e28' : 'transparent',
+                    borderColor: selectedMain === cat.id ? '#3a2e28' : 'rgba(58, 46, 40, 0.15)',
+                    color: selectedMain === cat.id ? '#ffffff' : '#3a2e28'
+                  }}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+
+            {/* 🌟 Edge fades — signal "more categories this way" without arrows, mobile-only */}
+            <div
+              className="pointer-events-none absolute top-0 left-0 h-full w-8 lg:hidden transition-opacity duration-300"
+              style={{
+                opacity: showLeftFade ? 1 : 0,
+                background: 'linear-gradient(to right, #f5f3ed, transparent)',
+              }}
+            />
+            <div
+              className="pointer-events-none absolute top-0 right-0 h-full w-10 lg:hidden transition-opacity duration-300"
+              style={{
+                opacity: showRightFade ? 1 : 0,
+                background: 'linear-gradient(to left, #f5f3ed, transparent)',
+              }}
+            />
           </div>
 
           {/* Level 2: Sub Categories */}
@@ -390,11 +450,21 @@ function ShopContent() {
                         />
                       </Link>
                       
-                      {/* 🏷️ High-Visibility Vibrant Red Discount Badge */}
+                      {/* 🏷️ Theme-matched discount badge — gentle bell-swing every ~3s to grab attention */}
                       {hasDiscount && (
-                        <div className="absolute top-2.5 left-2.5 z-10 bg-[#C8102E] text-white text-[9px] font-bold px-2.5 py-1 uppercase tracking-widest shadow-md">
+                        <motion.div
+                          className="absolute top-2.5 left-2.5 z-10 text-white text-[9px] font-bold px-2.5 py-1 uppercase tracking-widest shadow-md origin-top"
+                          style={{ backgroundColor: '#3a2e28' }}
+                          animate={{ rotate: [0, -10, 8, -6, 4, 0] }}
+                          transition={{
+                            duration: 0.8,
+                            ease: 'easeInOut',
+                            repeat: Infinity,
+                            repeatDelay: 2.4,
+                          }}
+                        >
                           {discountPercent}% OFF
-                        </div>
+                        </motion.div>
                       )}
 
                       <div className="absolute inset-0 pointer-events-none bg-[#3a2e28]/10 backdrop-blur-[1px] flex items-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden lg:flex">

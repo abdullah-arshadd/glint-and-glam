@@ -27,7 +27,12 @@ export async function POST(req) {
         .upload_stream(
           {
             folder: 'glint_and_glam_products',
-            resource_type: 'auto',
+            resource_type: 'image', // 'auto' ki jagah strictly 'image'
+            format: 'webp', // 🚀 Forces modern lightweight format (10x smaller)
+            transformation: [
+              { width: 1000, crop: 'limit' }, // 🚀 Shrinks 4K images to max 1000px width
+              { quality: 'auto' } // 🚀 Smart compression without losing visual quality
+            ]
           },
           (error, result) => {
             if (error) reject(error);

@@ -4,6 +4,13 @@ import { Package, Plus, Edit2, Trash2, X, Trash, Star, Loader2, Upload, Image as
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// 🚀 Helper function for Cloudinary (Pure JS - No Types)
+const getOptimizedUrl = (url, width = 600) => {
+  if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) return url;
+  if (url.includes('f_auto') || url.includes('q_auto')) return url;
+  return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+};
+
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]); 
@@ -468,7 +475,8 @@ export default function AdminProducts() {
                     <div className="w-20 h-24 sm:w-24 sm:h-28 bg-[#FAF9F6] flex-shrink-0 border border-gray-100 overflow-hidden relative">
                       {prod.images?.[0]?.url ? (
                         <motion.img
-                          src={prod.images[0].url}
+                          // 🚀 Optimized URL integration
+                          src={getOptimizedUrl(prod.images[0].url, 400)}
                           alt={prod.name}
                           className="w-full h-full object-cover"
                           whileHover={{ scale: 1.12 }}
@@ -523,7 +531,6 @@ export default function AdminProducts() {
                         </div>
                       </div>
 
-                      {/* 🌟 Description formatting fix: whitespace-pre-line */}
                       <p className="text-xs text-gray-400 line-clamp-2 h-8 leading-relaxed whitespace-pre-line">
                         {prod.description || 'No description added'}
                       </p>
@@ -772,7 +779,12 @@ export default function AdminProducts() {
                           <div className="flex gap-2 items-center">
                             <div className="w-12 h-12 bg-gray-100 border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden">
                               {img.url ? (
-                                <img src={img.url} alt="preview" className="w-full h-full object-cover" />
+                                <img 
+                                  // 🚀 Optimized URL integration
+                                  src={getOptimizedUrl(img.url, 200)} 
+                                  alt="preview" 
+                                  className="w-full h-full object-cover" 
+                                />
                               ) : (
                                 <ImageIcon size={18} className="text-gray-300" />
                               )}

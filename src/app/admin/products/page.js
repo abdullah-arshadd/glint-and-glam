@@ -3,13 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Package, Plus, Edit2, Trash2, X, Trash, Star, Loader2, Upload, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// 🚀 Helper function for Cloudinary (Pure JS - No Types)
-const getOptimizedUrl = (url, width = 600) => {
-  if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) return url;
-  if (url.includes('f_auto') || url.includes('q_auto')) return url;
-  return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
-};
+import { getOptimizedUrl } from '@/lib/cloudinary';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);

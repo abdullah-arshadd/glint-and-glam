@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SlidersHorizontal, ShoppingBag, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import useSWR from 'swr';
+import { getOptimizedUrl } from '@/lib/cloudinary';
 
 // 🌟 SWR Fetcher Utility Function
 const fetcher = (url) => fetch(url).then((res) => res.json());
@@ -381,8 +382,10 @@ function ShopContent() {
                       
                       <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
                         <img 
-                          src={product.images?.[0]?.url || '/placeholder.jpg'} 
+                          src={getOptimizedUrl(product.images?.[0]?.url, 500, { aspect: '4:5' }) || '/placeholder.jpg'} 
                           alt={product.name} 
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-103" 
                         />
                       </Link>

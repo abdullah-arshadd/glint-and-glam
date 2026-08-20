@@ -4,6 +4,8 @@ import { ShoppingBag, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext'; 
 import { toast } from 'sonner'; 
 import useSWR from 'swr';
+import { getOptimizedUrl } from '@/lib/cloudinary';
+import { getOptimizedUrl } from '@/lib/cloudinary';
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -321,9 +323,11 @@ export default function ProductDetailClient({ productId, initialProduct }) {
                       style={{ width: `${100 / imagesList.length}%`, flexShrink: 0 }}
                     >
                       <img 
-                        src={img.url} 
+                        src={getOptimizedUrl(img.url, 900, { aspect: '4:5' })} 
                         alt={product.name} 
                         draggable={false}
+                        loading={isActive ? 'eager' : 'lazy'}
+                        decoding="async"
                         className="w-full h-full object-cover pointer-events-none transition-transform ease-out"
                         style={imgStyle}
                       />
@@ -397,7 +401,13 @@ export default function ProductDetailClient({ productId, initialProduct }) {
                         boxShadow: isActive ? '0 4px 14px rgba(58,46,40,0.18)' : 'none',
                       }}
                     >
-                      <img src={img.url} alt={`thumbnail-${idx}`} className="w-full h-full object-cover" />
+                      <img 
+                        src={getOptimizedUrl(img.url, 150, { aspect: '1:1' })} 
+                        alt={`thumbnail-${idx}`} 
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover" 
+                      />
                     </button>
                   );
                 })}

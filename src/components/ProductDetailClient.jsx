@@ -5,7 +5,6 @@ import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner'; 
 import useSWR from 'swr';
 import { getOptimizedUrl } from '@/lib/cloudinary';
-import { getOptimizedUrl } from '@/lib/cloudinary';
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 

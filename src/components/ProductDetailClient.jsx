@@ -448,7 +448,7 @@ export default function ProductDetailClient({ productId, initialProduct }) {
                     <span className="text-sm text-gray-400 line-through font-medium">
                       Rs. {originalPrice.toLocaleString()}
                     </span>
-                    <span className="text-[10px] bg-[#C8102E] text-white font-bold px-2 py-0.5 uppercase tracking-wider">
+                    <span className="text-[10px] bg-[#3a2e28] text-white font-bold px-2 py-0.5 uppercase tracking-wider">
                       {discountPercentage}% OFF
                     </span>
                   </>

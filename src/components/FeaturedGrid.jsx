@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Eye, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import useSWR from 'swr';
+import { getOptimizedUrl } from '@/lib/cloudinary';
 
 // 🌟 SWR Fetcher Utility
 const fetcher = (url) => fetch(url).then((res) => res.json());
@@ -90,62 +92,101 @@ export default function FeaturedGrid() {
           className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none gap-x-4 lg:gap-x-6 pb-6"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {bestSellers.map((product) => (
-            <div 
-              key={product.id} 
-              className="group flex flex-col justify-between relative min-w-[calc(50%-8px)] lg:min-w-[calc(25%-18px)] max-w-[calc(50%-8px)] lg:max-w-[calc(25%-18px)] snap-start flex-shrink-0"
-            >
-              
-              {/* Image Container with precise aspect ratio */}
-              <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F7BFB4]/5 border border-[#F7BFB4]/20 transition-all duration-300">
-                
-                {/* 🌟 Mobile Tap-to-Go Link */}
-                <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
-                  <img 
-                    src={product.images?.[0]?.url || '/placeholder.jpg'} 
-                    alt={product.name}
-                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                  />
-                </Link>
+          {bestSellers.map((product) => {
+            // 🌟 Same discount logic as /shop — keeps pricing & badges in sync sitewide
+            const baseVariant = product.variants?.[0];
+            const price = baseVariant?.price ? Number(baseVariant.price) : 0;
+            const originalPrice = baseVariant?.originalPrice ? Number(baseVariant.originalPrice) : null;
+            const hasDiscount = originalPrice && originalPrice > price;
+            const discountPercent = hasDiscount
+              ? Math.round(((originalPrice - price) / originalPrice) * 100)
+              : 0;
 
-                {/* Hover Glassmorphic Effect Panel (Desktop Only) */}
-                <div className="absolute inset-0 pointer-events-none bg-white/40 backdrop-blur-xs flex flex-col items-center justify-center gap-4 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 lg:flex hidden">
-                  <div className="flex items-center gap-2 pointer-events-auto">
+            return (
+              <div 
+                key={product.id} 
+                className="group flex flex-col justify-between relative min-w-[calc(50%-8px)] lg:min-w-[calc(25%-18px)] max-w-[calc(50%-8px)] lg:max-w-[calc(25%-18px)] snap-start flex-shrink-0"
+              >
+                
+                {/* Image Container with precise aspect ratio */}
+                <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F7BFB4]/5 border border-[#F7BFB4]/20 transition-all duration-300">
+
+                  {/* 🏷️ Theme-matched discount badge — gentle bell-swing every ~3s, synced with /shop */}
+                  {hasDiscount && (
+                    <motion.div
+                      className="absolute top-2.5 left-2.5 z-10 text-white text-[9px] font-bold px-2.5 py-1 uppercase tracking-widest shadow-md origin-top"
+                      style={{ backgroundColor: '#3a2e28' }}
+                      animate={{ rotate: [0, -10, 8, -6, 4, 0] }}
+                      transition={{
+                        duration: 0.8,
+                        ease: 'easeInOut',
+                        repeat: Infinity,
+                        repeatDelay: 2.4,
+                      }}
+                    >
+                      {discountPercent}% OFF
+                    </motion.div>
+                  )}
+                  
+                  {/* 🌟 Mobile Tap-to-Go Link */}
+                  <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
+                    <img 
+                      src={getOptimizedUrl(product.images?.[0]?.url, 450, { aspect: '3:4' }) || '/placeholder.jpg'} 
+                      alt={product.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                    />
+                  </Link>
+
+                  {/* Hover Glassmorphic Effect Panel (Desktop Only) */}
+                  <div className="absolute inset-0 pointer-events-none bg-white/40 backdrop-blur-xs flex flex-col items-center justify-center gap-4 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 lg:flex hidden">
+                    <div className="flex items-center gap-2 pointer-events-auto">
+                      <Link 
+                        href={`/shop/${product.id}`}
+                        className="bg-white p-2.5 shadow-xs hover:bg-[#f7f2e6] text-[#2D2524] transition-colors duration-300 rounded-full cursor-pointer flex items-center justify-center"
+                      >
+                        <Eye size={15} strokeWidth={1.5} />
+                      </Link>
+                    </div>
+                    
                     <Link 
                       href={`/shop/${product.id}`}
-                      className="bg-white p-2.5 shadow-xs hover:bg-[#f7f2e6] text-[#2D2524] transition-colors duration-300 rounded-full cursor-pointer flex items-center justify-center"
+                      className="w-full bg-[#3a2e28] text-white py-2.5 uppercase tracking-widest text-[9px] font-semibold hover:bg-[#3a2f29]/90 transition-colors duration-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer pointer-events-auto"
                     >
-                      <Eye size={15} strokeWidth={1.5} />
+                      <ShoppingBag size={12} />
+                      View Product
                     </Link>
                   </div>
-                  
-                  <Link 
-                    href={`/shop/${product.id}`}
-                    className="w-full bg-[#3a2e28] text-white py-2.5 uppercase tracking-widest text-[9px] font-semibold hover:bg-[#3a2f29]/90 transition-colors duration-300 flex items-center justify-center gap-2 shadow-sm cursor-pointer pointer-events-auto"
-                  >
-                    <ShoppingBag size={12} />
-                    View Product
-                  </Link>
                 </div>
-              </div>
 
-              {/* Product Info Description */}
-              <div className="mt-4 text-center flex flex-col items-center">
-                <span className="text-[8px] lg:text-[9px] uppercase tracking-widest text-gray-400 mb-1">
-                  {product.category?.name || "Fine Jewelry"}
-                </span>
-                <Link href={`/shop/${product.id}`} className="block w-full">
-                  <h3 className="text-xs lg:text-sm text-[#2D2524] font-light tracking-wide [font-family:'Plus_Jakarta_Sans',sans-serif] hover:text-[#DB93B0] transition-colors duration-200 cursor-pointer line-clamp-1 px-1">
-                    {product.name}
-                  </h3>
-                </Link>
-                <p className="text-xs lg:text-sm text-[#2D2524] font-semibold mt-1 tracking-wide">
-                  Rs. {product.variants?.length > 0 ? Number(product.variants[0].price).toLocaleString() : "N/A"}
-                </p>
-              </div>
+                {/* Product Info Description */}
+                <div className="mt-4 text-center flex flex-col items-center">
+                  <span className="text-[8px] lg:text-[9px] uppercase tracking-widest text-gray-400 mb-1">
+                    {product.category?.name || "Fine Jewelry"}
+                  </span>
+                  <Link href={`/shop/${product.id}`} className="block w-full">
+                    <h3 className="text-xs lg:text-sm text-[#2D2524] font-light tracking-wide [font-family:'Plus_Jakarta_Sans',sans-serif] hover:text-[#DB93B0] transition-colors duration-200 cursor-pointer line-clamp-1 px-1">
+                      {product.name}
+                    </h3>
+                  </Link>
 
-            </div>
-          ))}
+                  {/* 🏷️ Price row — sale price + strikethrough original, synced with /shop */}
+                  <div className="flex items-center justify-center gap-1.5 mt-1">
+                    <p className="text-xs lg:text-sm text-[#2D2524] font-semibold tracking-wide">
+                      Rs. {price.toLocaleString()}
+                    </p>
+                    {hasDiscount && (
+                      <span className="text-[10px] lg:text-xs text-gray-400 line-through font-medium">
+                        Rs. {originalPrice.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
         </div>
 
         {/* --- PREMIUM DYNAMIC INDICATORS LINE --- */}

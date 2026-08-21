@@ -22,6 +22,8 @@ model User {
   isVerified        Boolean   @default(false)
   verificationToken String?
   tokenExpiry       DateTime?
+  resetToken       String?
+  resetTokenExpiry DateTime?
 }
 
 enum Role {

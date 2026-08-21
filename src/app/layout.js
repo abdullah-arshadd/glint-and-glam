@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { CartProvider } from "@/context/CartContext";
 import Providers from "@/components/Providers";
 import CartDrawer from '@/components/CartDrawer';
+import SaleAnnouncementModal from '@/components/SaleAnnouncementModal';
 
 export const metadata = {
   title: "Glint and Glam | Luxury Jewellery Store",
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
           <CartProvider>
             <Toaster position="bottom-right" richColors />
             <Navbar />
+            <SaleAnnouncementModal />
             {children}
             <CartDrawer />
           </CartProvider>

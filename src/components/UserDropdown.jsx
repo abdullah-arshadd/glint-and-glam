@@ -90,7 +90,7 @@ export default function UserDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white border border-[#3a2e28]/10 rounded-md shadow-xl py-2 z-[99999] animate-in fade-in slide-in-from-top-5 duration-200">
+        <div className="absolute right-0 mt-2 w-56 bg-white border border-[#3a2e28]/10 rounded-md py-2 animate-in fade-in slide-in-from-top-5 duration-200">
           {user ? (
             <>
               <div className="px-4 py-2.5 border-b border-gray-100 font-sans normal-case">

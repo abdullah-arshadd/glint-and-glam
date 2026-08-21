@@ -15,7 +15,6 @@ export default function LoginPage() {
     setStatusMessage({ type: "", text: "" });
 
     try {
-      // 📡 Backend Login API
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -30,11 +29,9 @@ export default function LoginPage() {
           text: `🎉 ${data.message}`,
         });
 
-        // ⏱️ 1.5 seconds ke delay ke baad homepage par HARD REDIRECT
         setTimeout(() => {
-          window.location.href = "/"; // Forces a hard reload so the navbar catches the cookie instantly
+          window.location.href = "/";
         }, 1500);
-
       } else {
         setStatusMessage({
           type: "error",
@@ -52,26 +49,33 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 [font-family:'Plus_Jakarta_Sans',sans-serif]" style={{ backgroundColor: '#f5f3ed' }}>
-      <div className="sm:mx-auto w-full max-w-md">
-        <Link href="/" className="flex items-center gap-2 text-xs transition-colors mb-6 justify-center sm:justify-start sm:px-0 px-4 opacity-70 hover:opacity-100" style={{ color: '#3a2e28' }}>
+    // 🌟 FIX: single flex wrapper with items-center for true vertical centering
+    // (previously two separate mx-auto blocks stacked with their own margins,
+    // which combined with min-h-screen could exceed the viewport on some
+    // screens and trigger a phantom scrollbar). min-h-[100dvh] also avoids
+    // mobile browsers' address-bar height changes causing a flickering scrollbar.
+    <div
+      className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-10 [font-family:'Plus_Jakarta_Sans',sans-serif]"
+      style={{ backgroundColor: '#f5f3ed' }}
+    >
+      <div className="w-full max-w-md">
+        <Link href="/" className="flex items-center gap-2 text-xs transition-colors mb-6 opacity-70 hover:opacity-100" style={{ color: '#3a2e28' }}>
           <ArrowLeft size={14} /> Back to store
         </Link>
+
         <h2 className="text-center text-3xl font-light tracking-wide [font-family:'Cormorant_Garamond',serif]" style={{ color: '#3a2e28' }}>
           Welcome Back
         </h2>
         <p className="mt-2 text-center text-xs font-light opacity-70" style={{ color: '#3a2e28' }}>
           Please enter your details to sign in to your account
         </p>
-      </div>
 
-      <div className="mt-8 sm:mx-auto w-full max-w-md px-4 sm:px-0">
-        <div className="bg-white/60 backdrop-blur-md py-8 px-6 border rounded-xl shadow-xs sm:px-10" style={{ borderColor: 'rgba(58, 46, 40, 0.1)' }}>
-          
+        <div className="mt-8 bg-white/60 backdrop-blur-md py-8 px-6 border rounded-xl shadow-xs sm:px-10" style={{ borderColor: 'rgba(58, 46, 40, 0.1)' }}>
+
           {statusMessage.text && (
             <div className={`mb-5 p-3 text-xs rounded-md font-light text-center ${
-              statusMessage.type === "success" 
-                ? "bg-green-50 text-green-700 border border-green-200" 
+              statusMessage.type === "success"
+                ? "bg-green-50 text-green-700 border border-green-200"
                 : "bg-red-50 text-red-700 border border-red-200"
             }`}>
               {statusMessage.text}
@@ -117,9 +121,10 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-end">
               <div className="text-xs">
-                <a href="#" className="font-light opacity-70 hover:opacity-100 transition-opacity" style={{ color: '#3a2e28' }}>
+                {/* 🌟 FIX: was href="#", now links to the real forgot-password page */}
+                <Link href="/forgot-password" className="font-light opacity-70 hover:opacity-100 transition-opacity" style={{ color: '#3a2e28' }}>
                   Forgot your password?
-                </a>
+                </Link>
               </div>
             </div>
 

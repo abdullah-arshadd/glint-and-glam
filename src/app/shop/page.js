@@ -2,7 +2,7 @@
 import React, { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { SlidersHorizontal, ShoppingBag, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { SlidersHorizontal, ShoppingBag, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import useSWR from 'swr';
 import { motion } from 'framer-motion';
 import { getOptimizedUrl } from '@/lib/cloudinary';
@@ -41,7 +41,6 @@ function ShopContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  // URL parameter extraction
   const categoryFromUrl = searchParams.get('category');
 
   // --- Dynamic Cascade State Tracks ---
@@ -85,8 +84,6 @@ function ShopContent() {
     return [];
   }, [catData]);
 
-  // 🌟 Fade edges + one-time "peek and settle" nudge for the mobile category row —
-  // runs after `categories` is available since the row's content depends on it.
   useEffect(() => {
     const el = mainCatScrollRef.current;
     if (!el) return;
@@ -96,7 +93,7 @@ function ShopContent() {
     window.addEventListener('resize', updateFadeState);
 
     const nudgeTimer = setTimeout(() => {
-      if (!el || el.scrollWidth <= el.clientWidth) return; // nothing to scroll
+      if (!el || el.scrollWidth <= el.clientWidth) return;
       el.scrollTo({ left: 46, behavior: 'smooth' });
       setTimeout(() => {
         el.scrollTo({ left: 0, behavior: 'smooth' });
@@ -108,7 +105,6 @@ function ShopContent() {
       window.removeEventListener('resize', updateFadeState);
       clearTimeout(nudgeTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories.length]);
 
   const products = useMemo(() => {
@@ -249,6 +245,27 @@ function ShopContent() {
     }
   };
 
+  // 🌟 SMART DYNAMIC SLIDING WINDOW PAGINATION LOGIC
+  const getPaginationRange = () => {
+    if (totalPages <= 4) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage === 1) {
+      return [1, 2, '...', totalPages];
+    }
+
+    if (currentPage === 2 && totalPages > 3) {
+      return [2, 3, '...', totalPages];
+    }
+
+    if (currentPage >= totalPages - 1) {
+      return [1, '...', totalPages - 1, totalPages];
+    }
+
+    return [currentPage, currentPage + 1, '...', totalPages];
+  };
+
   const mainCategories = categories.filter(c => !c.parentId);
   const activeMainObj = mainCategories.find(c => c.id === selectedMain);
   const subCategoryOptions = activeMainObj?.children || [];
@@ -304,7 +321,6 @@ function ShopContent() {
               ))}
             </div>
 
-            {/* 🌟 Edge fades — signal "more categories this way" without arrows, mobile-only */}
             <div
               className="pointer-events-none absolute top-0 left-0 h-full w-8 lg:hidden transition-opacity duration-300"
               style={{
@@ -390,12 +406,10 @@ function ShopContent() {
           {/* Active Items Count & Sort Dropdown */}
           <div className="flex items-center justify-between w-full mt-4 pt-4" style={{ borderTop: '1px solid rgba(58, 46, 40, 0.08)' }}>
             
-            {/* Left side: Item Count */}
             <div className="text-[10px] uppercase tracking-widest opacity-70 flex items-center gap-1 shrink-0" style={{ color: '#3a2e28' }}>
               Showing {sortedProducts.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, sortedProducts.length)} of {sortedProducts.length} Items
             </div>
             
-            {/* Right side: Functional Sort Dropdown */}
             <div className="relative flex items-center gap-2 text-[10px] uppercase tracking-widest bg-transparent" style={{ color: '#3a2e28' }}>
               <SlidersHorizontal size={12} className="opacity-70" />
               
@@ -420,7 +434,7 @@ function ShopContent() {
           </div>
         </div>
 
-        {/* --- Products Grid with Shimmer Loader State Sync --- */}
+        {/* --- Products Grid --- */}
         {loading ? (
           <ShopSkeletonGrid />
         ) : (
@@ -437,9 +451,7 @@ function ShopContent() {
 
                 return (
                   <div key={product.id} className="group flex flex-col relative">
-                    
                     <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/40 shadow-2xs border border-transparent group-hover:border-black/5 transition-all duration-300 rounded-none">
-                      
                       <Link href={`/shop/${product.id}`} className="block w-full h-full cursor-pointer">
                         <img 
                           src={getOptimizedUrl(product.images?.[0]?.url, 500, { aspect: '4:5' }) || '/placeholder.jpg'} 
@@ -450,7 +462,6 @@ function ShopContent() {
                         />
                       </Link>
                       
-                      {/* 🏷️ Theme-matched discount badge — gentle bell-swing every ~3s to grab attention */}
                       {hasDiscount && (
                         <motion.div
                           className="absolute top-2.5 left-2.5 z-10 text-white text-[9px] font-bold px-2.5 py-1 uppercase tracking-widest shadow-md origin-top"
@@ -489,7 +500,6 @@ function ShopContent() {
                         </h3>
                       </Link>
                       
-                      {/* 🏷️ Price & High Contrast Strikethrough Display */}
                       <div className="flex items-center justify-center gap-2 mt-1">
                         <span className="text-xs lg:text-sm font-semibold" style={{ color: '#3a2e28' }}>
                           Rs. {price.toLocaleString()}
@@ -502,49 +512,87 @@ function ShopContent() {
                         )}
                       </div>
                     </div>
-
                   </div>
                 );
               })}
             </div>
 
-            {/* 🌟 LUXURY PAGINATION BAR */}
+            {/* 🌟 MATCHED HOVER EFFECT (#3a2e28) PAGINATION BAR */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-16 pt-8 border-t border-[#3a2e28]/10 select-none">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="p-2 border border-[#3a2e28]/20 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#3a2e28] hover:text-white transition-colors cursor-pointer"
-                  aria-label="Previous Page"
+              <div className="flex justify-center items-center mt-20 pb-12 select-none">
+                <div 
+                  className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full transition-all duration-300 relative group"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid rgba(58, 46, 40, 0.16)',
+                    boxShadow: '0 20px 40px -12px rgba(58, 46, 40, 0.12), 0 4px 12px rgba(0, 0, 0, 0.03)'
+                  }}
                 >
-                  <ChevronLeft size={16} />
-                </button>
+                  {/* Subtle Gold Accented Line */}
+                  <div 
+                    className="absolute -top-[1px] left-8 right-8 h-[1px] rounded-full opacity-60 pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, #d4af37, transparent)'
+                    }}
+                  />
 
-                {[...Array(totalPages)].map((_, idx) => {
-                  const pageNum = idx + 1;
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`w-9 h-9 text-xs font-semibold tracking-wider transition-all cursor-pointer ${
-                        currentPage === pageNum
-                          ? 'bg-[#3a2e28] text-white border border-[#3a2e28]'
-                          : 'bg-transparent text-[#3a2e28] border border-[#3a2e28]/20 hover:border-[#3a2e28]'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+                  {/* Previous Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[#3a2e28] disabled:opacity-20 disabled:cursor-not-allowed hover:bg-[#3a2e28] hover:text-white hover:scale-105 active:scale-95 transition-all duration-300 ease-out shrink-0 cursor-pointer"
+                    style={{ border: '1px solid rgba(58, 46, 40, 0.18)' }}
+                    aria-label="Previous Page"
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
 
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="p-2 border border-[#3a2e28]/20 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#3a2e28] hover:text-white transition-colors cursor-pointer"
-                  aria-label="Next Page"
-                >
-                  <ChevronRight size={16} />
-                </button>
+                  {/* Dynamic Page Numbers & Dots */}
+                  <div className="flex items-center gap-2 px-1">
+                    {getPaginationRange().map((page, idx) => {
+                      if (page === '...') {
+                        return (
+                          <span
+                            key={`dots-${idx}`}
+                            className="w-6 h-8 flex items-center justify-center text-[#3a2e28]/40 select-none"
+                          >
+                            <MoreHorizontal size={14} />
+                          </span>
+                        );
+                      }
+
+                      const isActive = currentPage === page;
+
+                      return (
+                        <button
+                          key={`page-${page}`}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-8 h-8 rounded-full text-xs font-bold tracking-wider cursor-pointer flex items-center justify-center leading-none transition-all duration-300 ease-out ${
+                            isActive
+                              ? 'bg-[#3a2e28] text-white shadow-md scale-105'
+                              : 'bg-transparent text-[#3a2e28] hover:bg-[#3a2e28] hover:text-white hover:scale-105 active:scale-95'
+                          }`}
+                          style={{
+                            boxShadow: isActive ? '0 4px 12px rgba(58, 46, 40, 0.3)' : 'none'
+                          }}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Next Button */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[#3a2e28] disabled:opacity-20 disabled:cursor-not-allowed hover:bg-[#3a2e28] hover:text-white hover:scale-105 active:scale-95 transition-all duration-300 ease-out shrink-0 cursor-pointer"
+                    style={{ border: '1px solid rgba(58, 46, 40, 0.18)' }}
+                    aria-label="Next Page"
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
               </div>
             )}
           </>
